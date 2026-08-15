@@ -77,13 +77,17 @@ public sealed class Plugin : IDalamudPlugin
         {
             HelpMessage = "Toggle Parcae. /parcae config | stats | deps | about | pause | target."
         });
+        CommandManager.AddHandler(AfgConstants.ShortCommand, new CommandInfo(OnCommand)
+        {
+            HelpMessage = "Short alias for /parcae."
+        });
         CommandManager.AddHandler(AfgConstants.LegacyCommand, new CommandInfo(OnCommand)
         {
             HelpMessage = "Legacy alias for /parcae."
         });
         CommandManager.AddHandler(AfgConstants.AliasCommand, new CommandInfo(OnCommand)
         {
-            HelpMessage = "Alias for /afg."
+            HelpMessage = "Compatibility alias for /parcae."
         });
 
         PluginInterface.UiBuilder.Draw += WindowSystem.Draw;
@@ -122,6 +126,7 @@ public sealed class Plugin : IDalamudPlugin
         LiveFateWindow.Dispose();
 
         CommandManager.RemoveHandler(AfgConstants.PrimaryCommand);
+        CommandManager.RemoveHandler(AfgConstants.ShortCommand);
         CommandManager.RemoveHandler(AfgConstants.LegacyCommand);
         CommandManager.RemoveHandler(AfgConstants.AliasCommand);
 

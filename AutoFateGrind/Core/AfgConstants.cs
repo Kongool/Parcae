@@ -3,6 +3,7 @@ namespace AutoFateGrind.Core;
 internal static class AfgConstants
 {
     public const string PrimaryCommand = "/parcae";
+    public const string ShortCommand = "/parc";
     public const string LegacyCommand = "/afg";
     public const string AliasCommand = "/fategrind";
 

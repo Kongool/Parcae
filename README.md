@@ -65,6 +65,7 @@ The plugin needs a few helpers for movement and combat to be installed and loade
 | Command | Action |
 |---|---|
 | `/parcae` | Toggle the main window |
+| `/parc` | Short alias for `/parcae` |
 | `/afg` | Compatibility alias for `/parcae` |
 | `/fategrind` | Compatibility alias for `/parcae` |
 | `/parcae config` | Open settings |
