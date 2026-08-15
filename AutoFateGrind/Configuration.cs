@@ -1,4 +1,5 @@
 using AutoFateGrind.Core.Modes;
+using AutoFateGrind.Core.Zones;
 using Dalamud.Configuration;
 using ECommons.Throttlers;
 
@@ -31,6 +32,9 @@ public sealed class Configuration : IPluginConfiguration
     public int TargetFateCount { get; set; } = 30;
     public int TargetGemstoneCount { get; set; } = 1500;
     public int TargetMinutes { get; set; } = 60;
+
+    public ExpansionKind SharedFateExpansion { get; set; } = ExpansionKind.DT;
+    public bool SharedFateRotateZones { get; set; } = true;
 
     public string CombatPresetName { get; set; } = Core.AfgConstants.BundledCombatPresetName;
 

@@ -7,6 +7,8 @@ public readonly struct ModeContext
     public int CompletedCount { get; init; }
     public IReadOnlyList<ZoneInfo> Zones { get; init; }
     public TimeSpan Elapsed { get; init; }
+    public IReadOnlyDictionary<uint, SharedFateSnapshot>? SharedFateBaseline { get; init; }
+    public IReadOnlyDictionary<uint, int>? CompletedByZone { get; init; }
 }
 
 public interface IFateGrindMode

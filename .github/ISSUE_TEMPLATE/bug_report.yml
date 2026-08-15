@@ -2,16 +2,16 @@ name: Bug report
 description: Something's broken or behaving unexpectedly.
 title: "[Bug] "
 labels: ["bug"]
-assignees: ["XeldarAlz"]
+assignees: ["Kongool"]
 body:
   - type: markdown
     attributes:
       value: |
         Thanks for taking the time to file a bug. Please fill out as much as you can; it makes a huge difference.
 
-        If you're not sure whether it's a bug or expected behavior, prefer the [Q&A discussions](https://github.com/XeldarAlz/FFXIV-AutoFATEGrind/discussions/new?category=q-a); triage is faster there.
+        If you're not sure whether it's a bug or expected behavior, prefer the [Q&A discussions](https://github.com/Kongool/Parcae/discussions/new?category=q-a); triage is faster there.
 
-        For security issues, please use [private vulnerability reporting](https://github.com/XeldarAlz/FFXIV-AutoFATEGrind/security/advisories/new) instead.
+        For security issues, please use [private vulnerability reporting](https://github.com/Kongool/Parcae/security/advisories/new) instead.
 
   - type: textarea
     id: what-happened
@@ -39,7 +39,7 @@ body:
     id: plugin-version
     attributes:
       label: Plugin version
-      description: Shown in `/xlplugins` next to "Auto FATE Grind".
+      description: Shown in `/xlplugins` next to "Parcae".
       options:
         - 1.4.0.0
         - 1.3.2.3

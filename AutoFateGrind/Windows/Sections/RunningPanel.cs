@@ -37,7 +37,7 @@ internal static class RunningPanel
         DrawQueue(cfg);
 
         Styling.VSpace(4f);
-        DrawFooter(cfg);
+        DrawFooter(cfg, controller);
     }
 
     private static void DrawRunControls(AutoFateController controller, bool paused)
@@ -74,7 +74,6 @@ internal static class RunningPanel
         using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextSecondary))
             ImGui.TextUnformatted(paused ? "PAUSED" : "RUNNING");
 
-        TopToolbar.DrawIconsInline(Plugin.Instance);
     }
 
     private static void DrawHeroCard(
@@ -311,12 +310,12 @@ internal static class RunningPanel
         ImGui.Dummy(new Vector2(width, rowHeight));
     }
 
-    private static void DrawFooter(Configuration cfg)
+    private static void DrawFooter(Configuration cfg, AutoFateController controller)
     {
         var current = Svc.ClientState.TerritoryType;
         var zone = ZoneRegistry.Zones.FirstOrDefault(z => z.TerritoryId == current);
         var name = zone?.Name ?? "(somewhere else)";
-        var queued = cfg.SelectedZones.Count;
+        var queued = controller.ActiveZoneCount;
         using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextMuted))
             ImGui.TextUnformatted($"{name}   ·   {queued} zone{(queued == 1 ? "" : "s")} in rotation");
     }

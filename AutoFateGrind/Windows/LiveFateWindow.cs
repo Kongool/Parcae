@@ -15,7 +15,7 @@ public sealed class LiveFateWindow : Window, IDisposable
 {
     private readonly Plugin plugin;
 
-    public LiveFateWindow(Plugin plugin) : base("Live FATEs###AutoFateGrindLive")
+    public LiveFateWindow(Plugin plugin) : base("Parcae — Live FATEs###ParcaeLive")
     {
         this.plugin = plugin;
         Flags = ImGuiWindowFlags.AlwaysAutoResize;

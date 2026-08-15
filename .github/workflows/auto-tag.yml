@@ -1,6 +1,6 @@
 name: Auto-tag on version bump
 
-# Whenever master moves, read the plugin version from Directory.Build.props.
+# Whenever main moves, read the plugin version from Directory.Build.props.
 # If that version has no matching v* tag yet, create one and push it — the
 # existing release.yml fires from the tag push and publishes latest.zip.
 #
@@ -19,10 +19,10 @@ name: Auto-tag on version bump
 on:
   push:
     branches:
-      - master
+      - main
 
 concurrency:
-  group: auto-tag-master
+  group: auto-tag-main
   cancel-in-progress: false
 
 permissions:

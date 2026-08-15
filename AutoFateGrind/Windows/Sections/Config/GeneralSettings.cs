@@ -36,7 +36,7 @@ internal static class GeneralSettings
         using var group = SettingsGroup.Begin("Behavior");
 
         SettingsRow.Draw("Swap zones when empty",
-            "When the current zone runs out of eligible FATEs, jump to the next zone in your priority order.",
+            "For gemstone, count, time, and endless modes: when the current zone runs out of eligible FATEs, jump to the next zone in your priority order. Shared FATE mode uses its own Move between zones option.",
             SettingsControls.ToggleWidth,
             () => SettingsControls.DrawToggle(cfg, () => cfg.SwapZonesWhenEmpty, v => cfg.SwapZonesWhenEmpty = v, "##gen_swap"),
             SettingsRow.ToggleHeight);

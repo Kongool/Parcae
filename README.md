@@ -1,24 +1,24 @@
 <p align="center">
-  <img src="AutoFateGrind/Images/Icon.png" width="180" alt="Auto FATE Grind icon" />
+  <img src="AutoFateGrind/Images/Icon.png" width="180" alt="Parcae icon" />
 </p>
 
-<h1 align="center">Auto FATE Grind</h1>
+<h1 align="center">Parcae</h1>
 
 <p align="center">
-  <a href="https://github.com/XeldarAlz/FFXIV-AutoFATEGrind/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/XeldarAlz/FFXIV-AutoFATEGrind?style=flat-square&color=blue"></a>
-  <a href="https://github.com/XeldarAlz/FFXIV-AutoFATEGrind/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/XeldarAlz/FFXIV-AutoFATEGrind/total?style=flat-square&color=blue&cacheSeconds=300"></a>
-  <a href="https://github.com/XeldarAlz/FFXIV-AutoFATEGrind/actions/workflows/release.yml"><img alt="Build" src="https://img.shields.io/github/actions/workflow/status/XeldarAlz/FFXIV-AutoFATEGrind/release.yml?style=flat-square"></a>
+  <a href="https://github.com/Kongool/Parcae/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/Kongool/Parcae?style=flat-square&color=blue"></a>
+  <a href="https://github.com/Kongool/Parcae/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/Kongool/Parcae/total?style=flat-square&color=blue&cacheSeconds=300"></a>
+  <a href="https://github.com/Kongool/Parcae/actions/workflows/release.yml"><img alt="Build" src="https://img.shields.io/github/actions/workflow/status/Kongool/Parcae/release.yml?style=flat-square"></a>
   <a href="LICENSE.md"><img alt="License" src="https://img.shields.io/badge/license-AGPL--3.0--or--later-blue?style=flat-square"></a>
 </p>
 
 <p align="center">
-  <em>FATEs, farmed for you. Built on Dalamud.</em>
+  <em>Shape the route. Choose the goal. Let fate unwind.</em>
 </p>
 
 ---
 
 <p align="center">
-  <img src="AutoFateGrind/Images/demo.gif" alt="Auto FATE Grind demo" />
+  <img src="AutoFateGrind/Images/demo.gif" alt="Parcae demo" />
 </p>
 
 <p align="center">
@@ -28,12 +28,14 @@
 
 ## What it does
 
+Parcae is a focused FATE operations console derived from [Auto FATE Grind](https://github.com/XeldarAlz/FFXIV-AutoFATEGrind) by XeldarAlz.
+
 Lists every FATE zone from A Realm Reborn through Dawntrail in one window. Tick the zones you want, press **Run selected**, and the plugin teleports to each one, scans for active FATEs, flies to them, engages, and rotates to the next selected zone when the current one runs dry.
 
 ## Features
 
 - **Zone picker**: pick any FATE zones from ARR through DT, with live active-FATE counts.
-- **Four grind modes**: farm to a Gemstone target, run N FATEs, run for a set time, or go endless.
+- **Five grind modes**: complete Shared FATE ranks by expansion, farm to a Gemstone target, run N FATEs, run for a set time, or go endless.
 - **FATE filters & priority**: skip by type, time left, or progress, and reorder how the next FATE is chosen.
 - **Live FATE tracker**: shown inline, or as a separate HUD overlay.
 - **Class queue**: cycle gearsets in order with per-class level caps.
@@ -51,30 +53,31 @@ Lists every FATE zone from A Realm Reborn through Dawntrail in one window. Tick 
 In-game: `/xlsettings` → **Experimental** → paste into **Custom Plugin Repositories**:
 
 ```
-https://raw.githubusercontent.com/XeldarAlz/DalamudPlugins/main/repo.json
+https://raw.githubusercontent.com/Kongool/Parcae/main/repo.json
 ```
 
-Tick **Enabled**, click **+**, then **Save and Close**. Open `/xlplugins` → **All Plugins**, search for **Auto FATE Grind**, and install.
+Tick **Enabled**, click **+**, then **Save and Close**. Open `/xlplugins` → **All Plugins**, search for **Parcae**, and install.
 
-The plugin needs a few helpers for movement and combat to be installed and loaded. Open `/afg deps` after install to see the list and one-click each missing one.
+The plugin needs a few helpers for movement and combat to be installed and loaded. Open `/parcae deps` after install to see the list and one-click each missing one.
 
 ## Commands
 
 | Command | Action |
 |---|---|
-| `/afg` | Toggle the main window |
-| `/fategrind` | Alias for `/afg` |
-| `/afg config` | Open settings |
-| `/afg deps` | Open dependencies window |
-| `/afg about` | Open credits / links |
-| `/afg pause` | Pause or resume the current run |
-| `/afg target` | Log targeted NPC's BaseId (debug helper) |
+| `/parcae` | Toggle the main window |
+| `/afg` | Compatibility alias for `/parcae` |
+| `/fategrind` | Compatibility alias for `/parcae` |
+| `/parcae config` | Open settings |
+| `/parcae deps` | Open dependencies window |
+| `/parcae about` | Open credits / links |
+| `/parcae pause` | Pause or resume the current run |
+| `/parcae target` | Log targeted NPC's BaseId (debug helper) |
 
-## More from me
+## Project
 
-If you liked this plugin, take a look at my other Dalamud work. You might find something else there for you.
+Source, issues, and releases are maintained at [Kongool/Parcae](https://github.com/Kongool/Parcae).
 
-→ [XeldarAlz Dalamud Plugins](https://github.com/XeldarAlz/DalamudPlugins)
+Original project: [XeldarAlz/FFXIV-AutoFATEGrind](https://github.com/XeldarAlz/FFXIV-AutoFATEGrind).
 
 ## License
 

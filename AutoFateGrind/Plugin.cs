@@ -25,7 +25,7 @@ public sealed class Plugin : IDalamudPlugin
 
     internal Configuration Configuration { get; }
     internal static Configuration Cfg { get; private set; } = null!;
-    internal WindowSystem WindowSystem { get; } = new("AutoFateGrind");
+    internal WindowSystem WindowSystem { get; } = new("Parcae");
     internal RunHistory History { get; }
     internal AutoFateController Controller { get; }
     private readonly GmAlertWatcher gmAlertWatcher;
@@ -75,7 +75,11 @@ public sealed class Plugin : IDalamudPlugin
 
         CommandManager.AddHandler(AfgConstants.PrimaryCommand, new CommandInfo(OnCommand)
         {
-            HelpMessage = "Toggle the Auto FATE Grind window. /afg config | stats | deps | about | pause (pause or resume the run) | target (dump current target's BaseId)."
+            HelpMessage = "Toggle Parcae. /parcae config | stats | deps | about | pause | target."
+        });
+        CommandManager.AddHandler(AfgConstants.LegacyCommand, new CommandInfo(OnCommand)
+        {
+            HelpMessage = "Legacy alias for /parcae."
         });
         CommandManager.AddHandler(AfgConstants.AliasCommand, new CommandInfo(OnCommand)
         {
@@ -118,6 +122,7 @@ public sealed class Plugin : IDalamudPlugin
         LiveFateWindow.Dispose();
 
         CommandManager.RemoveHandler(AfgConstants.PrimaryCommand);
+        CommandManager.RemoveHandler(AfgConstants.LegacyCommand);
         CommandManager.RemoveHandler(AfgConstants.AliasCommand);
 
         gmAlertWatcher.Dispose();

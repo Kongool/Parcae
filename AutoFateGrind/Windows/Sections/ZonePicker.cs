@@ -1,4 +1,5 @@
 using AutoFateGrind;
+using AutoFateGrind.Core.Modes;
 using AutoFateGrind.Core.Tasks;
 using AutoFateGrind.Core.Zones;
 using Dalamud.Bindings.ImGui;
@@ -13,6 +14,12 @@ internal static class ZonePicker
 {
     public static void Draw(Configuration cfg, AutoFateController controller)
     {
+        if (cfg.ActiveMode.Id == SharedFateCompletionMode.ModeId)
+        {
+            DrawSharedFateRoute(cfg);
+            return;
+        }
+
         QueueStrip.Draw(cfg, controller);
         ImGui.Spacing();
         Divider();
@@ -28,6 +35,100 @@ internal static class ZonePicker
 
             DrawExpansionTab(exp, zones, cfg, controller);
         }
+    }
+
+    private static void DrawSharedFateRoute(Configuration cfg)
+    {
+        if (!SharedFateProgressReader.IsSupported(cfg.SharedFateExpansion))
+            cfg.SharedFateExpansion = ExpansionKind.DT;
+
+        SharedFateProgressReader.EnsureRequested(cfg.SharedFateExpansion);
+        var zones = ZoneSelection.SharedFateExpansionZones(cfg.SharedFateExpansion);
+        foreach (var zone in zones) ZoneStateReader.Refresh(zone);
+
+        var route = ZoneSelection.ResolveStartList(cfg);
+        var positions = route.Select((zone, index) => (zone.TerritoryId, Position: index + 1))
+            .ToDictionary(x => x.TerritoryId, x => x.Position);
+
+        using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextStrong))
+            ImGui.TextUnformatted($"{cfg.SharedFateExpansion.ShortName()} Shared FATE route");
+
+        var description = route.Count == 0
+            ? "No unfinished unlocked zones remain."
+            : cfg.SharedFateRotateZones
+                ? $"Parcae will rotate through {route.Count} unfinished zone{(route.Count == 1 ? "" : "s")} in order."
+                : $"Single-zone mode: {route[0].Name}. Enable Move between zones below to complete the whole expansion.";
+        using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextDim))
+            ImGui.TextWrapped(description);
+
+        ImGui.Spacing();
+        using var list = ImRaii.Child("##shared_fate_route", new Vector2(-1, Layout.ZoneListHeight * ImGuiHelpers.GlobalScale), false);
+        foreach (var zone in zones)
+            DrawSharedFateRow(zone, positions.GetValueOrDefault(zone.TerritoryId));
+    }
+
+    private static void DrawSharedFateRow(ZoneInfo zone, int routePosition)
+    {
+        var scale = ImGuiHelpers.GlobalScale;
+        var rowHeight = ImGui.GetFrameHeight() * 1.35f;
+        var origin = ImGui.GetCursorScreenPos();
+        var width = ImGui.GetContentRegionAvail().X;
+        var end = origin + new Vector2(width, rowHeight);
+        var dl = ImGui.GetWindowDrawList();
+
+        var known = SharedFateProgressReader.TryGetLive(zone.Expansion, zone.TerritoryId, out var progress);
+        var complete = known && progress.IsComplete;
+        var active = routePosition > 0;
+
+        if (active)
+        {
+            dl.AddRectFilled(origin, end, ImGui.GetColorU32(Vector4.Lerp(Styling.CardBgSoft, Styling.AccentViolet, 0.12f)), 5f);
+            dl.AddRect(origin, end, ImGui.GetColorU32(Styling.WithAlpha(Styling.AccentViolet, 0.35f)), 5f);
+        }
+
+        var icon = !zone.Unlocked ? FontAwesomeIcon.Lock
+            : complete ? FontAwesomeIcon.CheckCircle
+            : FontAwesomeIcon.Star;
+        var iconColor = !zone.Unlocked ? Styling.TextMuted
+            : complete ? Styling.AccentMint
+            : active ? Styling.AccentVioletSoft : Styling.TextDim;
+
+        var x = origin.X + 10f * scale;
+        var midY = origin.Y + rowHeight * 0.5f;
+        var iconText = icon.ToIconString();
+        float iconWidth;
+        using (ImRaii.PushFont(UiBuilder.IconFont))
+        {
+            iconWidth = ImGui.CalcTextSize(iconText).X;
+            PutRowText(iconText, x, midY, iconColor);
+        }
+        x += iconWidth + 9f * scale;
+
+        PutRowText(zone.Name, x, midY, zone.Unlocked ? Styling.TextStrong : Styling.TextMuted);
+
+        var status = !zone.Unlocked ? "Aetheryte not attuned"
+            : !known ? "Loading progress..."
+            : complete ? $"Complete  -  Rank {progress.MaxRank}"
+            : $"Rank {progress.CurrentRank} of {progress.MaxRank}  -  {progress.FateProgress}/{progress.NeededFates} FATEs";
+
+        if (routePosition > 0)
+            status = $"#{routePosition}  -  {status}";
+
+        var statusWidth = ImGui.CalcTextSize(status).X;
+        PutRowText(status, end.X - statusWidth - 10f * scale, midY,
+            complete ? Styling.AccentMintSoft : zone.Unlocked ? Styling.TextDim : Styling.TextMuted);
+
+        ImGui.SetCursorScreenPos(origin);
+        ImGui.Dummy(new Vector2(width, rowHeight));
+        ImGui.Spacing();
+    }
+
+    private static void PutRowText(string text, float x, float midY, Vector4 color)
+    {
+        var size = ImGui.CalcTextSize(text);
+        ImGui.SetCursorScreenPos(new Vector2(x, midY - size.Y * 0.5f));
+        using (ImRaii.PushColor(ImGuiCol.Text, color))
+            ImGui.TextUnformatted(text);
     }
 
     private static void DrawExpansionTab(ExpansionKind exp, ZoneInfo[] zones, Configuration cfg, AutoFateController controller)

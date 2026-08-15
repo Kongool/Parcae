@@ -398,7 +398,14 @@ public sealed partial class AutoFate
     }
 
     private bool StopConditionMet()
-        => Plugin.Cfg.ActiveMode.IsComplete(new ModeContext { CompletedCount = session.CompletedCount, Zones = zones, Elapsed = session.Elapsed });
+        => Plugin.Cfg.ActiveMode.IsComplete(new ModeContext
+        {
+            CompletedCount = session.CompletedCount,
+            Zones = zones,
+            Elapsed = session.Elapsed,
+            SharedFateBaseline = session.SharedFateBaseline,
+            CompletedByZone = session.CompletedByZone,
+        });
 
     private bool AdvanceClassQueueIfCapHit()
     {

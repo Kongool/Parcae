@@ -1,4 +1,5 @@
 using AutoFateGrind.Core.External;
+using AutoFateGrind.Core.Modes;
 using AutoFateGrind.Core.Tasks;
 using AutoFateGrind.Core.Zones;
 using AutoFateGrind.Windows.Components;
@@ -13,7 +14,7 @@ public sealed class MainWindow : Window, IDisposable
 {
     private readonly Plugin plugin;
 
-    public MainWindow(Plugin plugin) : base("Auto FATE Grind###AutoFateGrindMain")
+    public MainWindow(Plugin plugin) : base("Parcae — FATE Operations###ParcaeMain")
     {
         this.plugin = plugin;
         SizeConstraints = new WindowSizeConstraints
@@ -21,7 +22,7 @@ public sealed class MainWindow : Window, IDisposable
             MinimumSize = new Vector2(100, 100),
             MaximumSize = new Vector2(float.MaxValue, float.MaxValue),
         };
-        Size = new Vector2(780, 640);
+        Size = new Vector2(820, 760);
         SizeCondition = ImGuiCond.FirstUseEver;
     }
 
@@ -34,6 +35,8 @@ public sealed class MainWindow : Window, IDisposable
 
         using var style = Styling.PushWindowStyle();
 
+        ParcaeHeader.Draw(plugin, ctrl);
+        Styling.VSpace(7f);
         DependencyBanner.Draw(plugin);
 
         if (ctrl.Running) RunningPanel.Draw(cfg, ctrl);
@@ -46,12 +49,22 @@ public sealed class MainWindow : Window, IDisposable
         ImGui.Spacing();
 
         var zoneCount = ZoneSelection.ResolveStartList(cfg).Count;
-        StepHeader.Draw(1, "Zones", zoneCount > 0 ? $"{zoneCount} selected" : null);
+        var sharedFates = cfg.ActiveMode.Id == SharedFateCompletionMode.ModeId;
+        StepHeader.Draw(1, sharedFates ? "Choose the expansion route" : "Shape the route",
+            zoneCount > 0
+                ? sharedFates
+                    ? cfg.SharedFateRotateZones ? $"{zoneCount} remaining" : "single zone"
+                    : $"{zoneCount} selected"
+                : null);
         ZonePicker.Draw(cfg, ctrl);
 
         ImGui.Spacing();
-        StepHeader.Draw(2, "Run until");
+        StepHeader.Draw(2, "Choose the thread's end");
         GoalSummary.Draw(cfg);
+
+        ImGui.Spacing();
+        StepHeader.Draw(3, "Spend the spoils", GemstonePurchaseSummary.HeaderSummary(cfg));
+        GemstonePurchaseSummary.Draw(cfg);
 
         ImGui.Spacing();
         ImGui.Spacing();
@@ -64,6 +77,8 @@ public sealed class MainWindow : Window, IDisposable
         var depsOk = ExternalPlugins.AllRequiredInstalled();
         var canStart = startList.Count > 0 && !ctrl.Running && depsOk;
         var reason = !depsOk ? "install required plugins"
+            : startList.Count == 0 && cfg.ActiveMode.Id == SharedFateCompletionMode.ModeId
+                ? "no unfinished unlocked zones in this expansion"
             : startList.Count == 0 ? "pick at least one zone below"
             : "";
         var sub = $"{startList.Count} zone{(startList.Count == 1 ? "" : "s")}";

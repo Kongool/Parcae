@@ -1,6 +1,7 @@
 using AutoFateGrind.Core.Modes;
 using AutoFateGrind.Core.Tasks;
 using AutoFateGrind.Core.Trading;
+using AutoFateGrind.Core.Zones;
 
 namespace AutoFateGrind.Windows.Sections;
 
@@ -34,6 +35,56 @@ internal static class GoalProgress
                     Math.Clamp(completed / (float)target, 0f, 1f),
                     completed.ToString(), $"/ {target}",
                     left > 0 ? $"{left} FATEs left" : "target reached", false);
+            }
+            case SharedFateCompletionMode.ModeId:
+            {
+                if (!cfg.SharedFateRotateZones)
+                {
+                    var target = s?.SharedFateBaseline.Keys
+                        .Select(id => ZoneRegistry.Zones.FirstOrDefault(z => z.TerritoryId == id))
+                        .FirstOrDefault(z => z is not null)
+                        ?? ZoneSelection.ResolveStartList(cfg).FirstOrDefault();
+                    if (target is null || !SharedFateProgressReader.TryGetEffective(
+                            target, s?.SharedFateBaseline, s?.CompletedByZone, out var rank))
+                        return new Info(0f, "...", "rank", "loading Shared FATE progress", false);
+
+                    const int totalFates = 66;
+                    var overall = rank.CurrentRank switch
+                    {
+                        >= 3 => totalFates,
+                        2    => 6 + rank.FateProgress,
+                        _    => rank.FateProgress,
+                    };
+                    var remainingAtRank = Math.Max(0, rank.NeededFates - rank.FateProgress);
+                    return new Info(
+                        Math.Clamp(overall / (float)totalFates, 0f, 1f),
+                        $"R{rank.CurrentRank}", $"/ R{rank.MaxRank}",
+                        rank.IsComplete
+                            ? $"{target.Name} complete"
+                            : $"{remainingAtRank} FATEs to next rank", false);
+                }
+
+                var zones = ZoneSelection.SharedFateExpansionZones(cfg.SharedFateExpansion);
+                var total = zones.Count;
+                var done = 0;
+                var known = 0;
+                foreach (var zone in zones)
+                {
+                    if (!SharedFateProgressReader.TryGetEffective(
+                            zone, s?.SharedFateBaseline, s?.CompletedByZone, out var progress))
+                        continue;
+                    known++;
+                    if (progress.IsComplete) done++;
+                }
+
+                if (total == 0 || known == 0)
+                    return new Info(0f, "...", "zones", "loading Shared FATE progress", false);
+
+                var left = Math.Max(0, total - done);
+                return new Info(
+                    Math.Clamp(done / (float)total, 0f, 1f),
+                    done.ToString(), $"/ {total}",
+                    left > 0 ? $"{left} zone{(left == 1 ? "" : "s")} left" : "expansion complete", false);
             }
             case TimeBoxedMode.ModeId:
             {

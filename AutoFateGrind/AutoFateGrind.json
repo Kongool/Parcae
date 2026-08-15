@@ -1,12 +1,12 @@
 {
-    "Author": "XeldarAlz",
-    "Name": "Auto FATE Grind",
+    "Author": "Kongool",
+    "Name": "Parcae",
     "InternalName": "AutoFateGrind",
-    "Punchline": "FATEs, farmed for you.",
-    "Description": "Farms FATEs for you: tick the zones, and the plugin teleports in, finds active FATEs, and runs them in a loop until your target is met.",
+    "Punchline": "Weave your next FATE.",
+    "Description": "A focused FATE operations console: shape a route, choose a goal, and let Parcae coordinate travel, encounters, and rewards.",
     "ApplicableVersion": "any",
-    "RepoUrl": "https://github.com/XeldarAlz/FFXIV-AutoFATEGrind",
-    "IconUrl": "https://raw.githubusercontent.com/XeldarAlz/FFXIV-AutoFATEGrind/master/AutoFateGrind/Images/Icon.png",
+    "RepoUrl": "https://github.com/Kongool/Parcae",
+    "IconUrl": "https://raw.githubusercontent.com/Kongool/Parcae/main/AutoFateGrind/Images/Icon.png",
     "Tags": [
         "FATE",
         "Shared FATE",

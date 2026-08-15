@@ -13,14 +13,14 @@ namespace AutoFateGrind.Windows;
 
 public sealed class AboutWindow : Window, IDisposable
 {
-    private const string Name = "Auto FATE Grind";
-    private const string RepoUrl = "https://github.com/XeldarAlz/FFXIV-AutoFATEGrind";
+    private const string Name = "Parcae";
+    private const string RepoUrl = "https://github.com/Kongool/Parcae";
     private const string IconFile = "Icon.png";
-    private const string WindowId = "AutoFateGrindAbout";
+    private const string WindowId = "ParcaeAbout";
 
-    private const string SponsorUrl = "https://github.com/sponsors/XeldarAlz";
-    private const string HubUrl = "https://github.com/XeldarAlz/DalamudPlugins";
-    private const string Author = "XeldarAlz";
+    private const string SponsorUrl = "https://github.com/Kongool";
+    private const string HubUrl = "https://github.com/Kongool?tab=repositories";
+    private const string Author = "Kongool";
 
     private const string IssuesUrl = RepoUrl + "/issues";
     private const string DiscussionsUrl = RepoUrl + "/discussions";
@@ -345,8 +345,8 @@ public sealed class AboutWindow : Window, IDisposable
         var pulse = Styling.Pulse(Styling.PulseBreath);
         var accent = Styling.PulseColor(Styling.AccentPink, Styling.AccentViolet, 5200.0);
 
-        const string title = "Made with care";
-        const string body = "I build and maintain this in my spare time. If it has helped you, a sponsorship lets me keep improving it. No pressure, and thank you for being here.";
+        const string title = "Maintained with care";
+        const string body = "Parcae is maintained by Kongool and builds on Auto FATE Grind by XeldarAlz. Visit the maintainer profile for updates and related projects.";
 
         var slotOrigin = ImGui.GetCursorScreenPos();
         var fullAvail = ImGui.GetContentRegionAvail().X;
@@ -439,7 +439,7 @@ public sealed class AboutWindow : Window, IDisposable
         dl.AddRect(origin, end, ImGui.GetColorU32(new Vector4(1f, 1f, 1f, hover ? 0.42f : 0.18f)),
             rounding, ImDrawFlags.None, 1f);
 
-        const string label = "Become a Sponsor";
+        const string label = "View maintainer profile";
         var iconStr = FontAwesomeIcon.HandHoldingHeart.ToIconString();
         Vector2 iconSize;
         using (ImRaii.PushFont(UiBuilder.IconFont))
@@ -470,7 +470,7 @@ public sealed class AboutWindow : Window, IDisposable
         if (!hover) return;
         ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
         using (ImRaii.Tooltip())
-            ImGui.TextUnformatted("Open GitHub Sponsors · right-click to copy");
+            ImGui.TextUnformatted("Open maintainer profile · right-click to copy");
         if (ImGui.IsMouseClicked(ImGuiMouseButton.Left)) OpenUrl(SponsorUrl);
         else if (ImGui.IsMouseClicked(ImGuiMouseButton.Right)) ImGui.SetClipboardText(SponsorUrl);
     }

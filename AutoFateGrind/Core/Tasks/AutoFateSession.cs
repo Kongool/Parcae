@@ -1,11 +1,14 @@
 using AutoFateGrind.Core.Trading;
 using AutoFateGrind.Core.Zones;
+using AutoFateGrind.Core.Modes;
 
 namespace AutoFateGrind.Core.Tasks;
 
 public sealed class AutoFateSession
 {
     public int CompletedCount;
+    public readonly Dictionary<uint, int> CompletedByZone = [];
+    public readonly Dictionary<uint, SharedFateSnapshot> SharedFateBaseline = [];
     public DateTime StartedAt = DateTime.UtcNow;
     public int GemstoneCurrent;
 

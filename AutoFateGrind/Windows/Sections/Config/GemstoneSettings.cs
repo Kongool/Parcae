@@ -105,7 +105,7 @@ internal static class GemstoneSettings
     // populates or changes length after game data loads.
     private static void EnsureSortedCatalog()
     {
-        var catalog = GemstoneCatalog.All;
+        var catalog = GemstoneCatalog.Routable;
         if (sortedItems is not null && sortedItems.Length == catalog.Length)
         {
             return;

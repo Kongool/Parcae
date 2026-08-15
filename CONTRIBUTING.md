@@ -5,8 +5,8 @@ Thanks for taking an interest. This is a small solo project, but PRs are welcome
 ## Quick start
 
 ```bash
-git clone --recurse-submodules https://github.com/XeldarAlz/FFXIV-AutoFATEGrind.git
-cd FFXIV-AutoFATEGrind
+git clone --recurse-submodules https://github.com/Kongool/Parcae.git
+cd Parcae
 dotnet build AutoFateGrind.sln -c Release
 ```
 

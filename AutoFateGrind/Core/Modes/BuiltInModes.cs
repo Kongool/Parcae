@@ -28,6 +28,36 @@ public sealed class MaxGemstonesMode : IFateGrindMode
     }
 }
 
+public sealed class SharedFateCompletionMode : IFateGrindMode
+{
+    public const string ModeId = "sharedfates";
+    public string Id => ModeId;
+    public string DisplayName => "Complete Shared FATEs";
+    public string Description => "Finishes Shared FATE ranks in one zone or rotates through every unfinished zone in an expansion.";
+
+    public bool IsComplete(ModeContext ctx)
+    {
+        if (ctx.Zones.Count == 0) return false;
+        foreach (var zone in ctx.Zones)
+        {
+            if (!SharedFateProgressReader.TryGetEffective(
+                    zone, ctx.SharedFateBaseline, ctx.CompletedByZone, out var progress)
+             || !progress.IsComplete)
+                return false;
+        }
+        return true;
+    }
+
+    public string? GetRemainingDisplay(ModeContext ctx)
+    {
+        var remaining = ctx.Zones.Count(zone =>
+            !SharedFateProgressReader.TryGetEffective(
+                zone, ctx.SharedFateBaseline, ctx.CompletedByZone, out var progress)
+            || !progress.IsComplete);
+        return remaining > 0 ? $"{remaining} zone{(remaining == 1 ? "" : "s")} left" : null;
+    }
+}
+
 public sealed class TimeBoxedMode : IFateGrindMode
 {
     public const string ModeId = "timeboxed";

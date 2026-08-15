@@ -10,7 +10,7 @@ namespace AutoFateGrind.Windows;
 
 public sealed class DependenciesWindow : Window, IDisposable
 {
-    public DependenciesWindow() : base("Auto FATE Grind — Dependencies###AutoFateGrindDeps")
+    public DependenciesWindow() : base("Parcae — Dependencies###AutoFateGrindDeps")
     {
         Size = new Vector2(580, 460);
         SizeCondition = ImGuiCond.FirstUseEver;

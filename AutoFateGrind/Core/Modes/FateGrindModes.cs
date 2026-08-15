@@ -6,6 +6,7 @@ public static class FateGrindModes
     private static readonly List<IFateGrindMode> registered =
     [
         new MaxGemstonesMode(),
+        new SharedFateCompletionMode(),
         new RunCountMode(),
         new TimeBoxedMode(),
         new EndlessMode(),

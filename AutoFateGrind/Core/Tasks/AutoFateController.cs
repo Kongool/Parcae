@@ -22,6 +22,7 @@ internal sealed partial class AutoFateController
     private AutoFateSession? session;
     private IReadOnlyList<ZoneInfo> activeZones = [];
     public AutoFateSession? SessionSnapshot => session;
+    public int ActiveZoneCount => activeZones.Count;
 
     private static readonly Random rng = new();
 

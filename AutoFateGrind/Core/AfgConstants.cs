@@ -2,10 +2,11 @@ namespace AutoFateGrind.Core;
 
 internal static class AfgConstants
 {
-    public const string PrimaryCommand = "/afg";
+    public const string PrimaryCommand = "/parcae";
+    public const string LegacyCommand = "/afg";
     public const string AliasCommand = "/fategrind";
 
-    public const string BundledCombatPresetName = "Auto FATE Grind";
+    public const string BundledCombatPresetName = "Parcae";
 
     // Identity AFG presents to TextAdvance external-control; must match on enable/disable to pair the session.
     public const string TextAdvanceCallerName = "AutoFateGrind";

@@ -1,6 +1,7 @@
 using AutoFateGrind.Core;
 using AutoFateGrind.Core.Modes;
 using AutoFateGrind.Core.Trading;
+using AutoFateGrind.Core.Zones;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility;
@@ -16,6 +17,7 @@ internal static class GoalSummary
     private static readonly Dictionary<string, (FontAwesomeIcon Icon, string Label)> stopVisuals = new()
     {
         [MaxGemstonesMode.ModeId] = (FontAwesomeIcon.Gem,       "Gemstones"),
+        [SharedFateCompletionMode.ModeId] = (FontAwesomeIcon.Star, "Shared FATEs"),
         [RunCountMode.ModeId]     = (FontAwesomeIcon.ListOl,    "FATEs"),
         [TimeBoxedMode.ModeId]    = (FontAwesomeIcon.Stopwatch, "Time"),
         [EndlessMode.ModeId]      = (FontAwesomeIcon.Infinity,  "Endless"),
@@ -174,6 +176,46 @@ internal static class GoalSummary
                 }
                 ImGui.SameLine();
                 Dim("FATEs");
+                break;
+            }
+            case SharedFateCompletionMode.ModeId:
+            {
+                if (!SharedFateProgressReader.IsSupported(cfg.SharedFateExpansion))
+                    cfg.SharedFateExpansion = ExpansionKind.DT;
+                SharedFateProgressReader.EnsureRequested(cfg.SharedFateExpansion);
+
+                Caption("Expansion");
+                ImGui.SameLine();
+                ImGui.SetNextItemWidth(170f * ImGuiHelpers.GlobalScale);
+                using (var combo = ImRaii.Combo("##shared_expansion", cfg.SharedFateExpansion.ShortName()))
+                {
+                    if (combo)
+                    {
+                        foreach (var expansion in SharedFateProgressReader.SupportedExpansions)
+                        {
+                            if (ImGui.Selectable(expansion.ShortName(), expansion == cfg.SharedFateExpansion))
+                            {
+                                cfg.SharedFateExpansion = expansion;
+                                SharedFateProgressReader.EnsureRequested(expansion);
+                                cfg.SaveDebounced();
+                            }
+                        }
+                    }
+                }
+
+                ImGui.SameLine(0, 18f * ImGuiHelpers.GlobalScale);
+                var rotate = cfg.SharedFateRotateZones;
+                if (ImGui.Checkbox("Move between zones", ref rotate))
+                {
+                    cfg.SharedFateRotateZones = rotate;
+                    cfg.SaveDebounced();
+                }
+                if (ImGui.IsItemHovered())
+                    ImGui.SetTooltip("When enabled, Parcae moves through every unfinished Shared FATE zone in this expansion. When disabled, it stays in your current zone (or the first unfinished zone if you are elsewhere).");
+
+                Dim(cfg.SharedFateRotateZones
+                    ? "Completes unfinished zones in expansion order, skipping zones already at maximum rank."
+                    : "Single-zone mode: stays in the current expansion zone until its Shared FATE rank is complete.");
                 break;
             }
             case TimeBoxedMode.ModeId:

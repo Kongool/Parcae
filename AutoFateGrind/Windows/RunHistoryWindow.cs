@@ -12,7 +12,7 @@ public sealed class RunHistoryWindow : Window, IDisposable
 {
     private bool confirmClear;
 
-    public RunHistoryWindow() : base("Auto FATE Grind — Run History###AutoFateGrindHistory")
+    public RunHistoryWindow() : base("Parcae — Run History###ParcaeHistory")
     {
         Size = new Vector2(660, 480);
         SizeCondition = ImGuiCond.FirstUseEver;

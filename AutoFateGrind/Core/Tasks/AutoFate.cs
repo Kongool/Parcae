@@ -138,6 +138,19 @@ public sealed partial class AutoFate(IReadOnlyList<ZoneInfo> zones, AutoFateSess
 
         try
         {
+            // If the run starts at or above the configured threshold, spend first instead of
+            // wasting another capped FATE reward (or letting a gemstone stop goal end immediately).
+            session.UpdateGemstones();
+            if (Plugin.Cfg.TradeOnCap
+             && session.GemstoneCurrent >= Plugin.Cfg.TradeThreshold
+             && !Svc.Condition[ConditionFlag.InCombat]
+             && TryQueueTrade())
+            {
+                Status = "Preparing Bicolor Gemstone purchase";
+                return;
+            }
+
+            await EnsureModeReady();
             // Eat up front so the buff is live before the first FATE (food works anywhere out of combat).
             await EnsureConsumables();
             await RunStateMachine();
@@ -165,6 +178,30 @@ public sealed partial class AutoFate(IReadOnlyList<ZoneInfo> zones, AutoFateSess
         {
             DisableTextAdvance();
         }
+    }
+
+    private async Task EnsureModeReady()
+    {
+        if (Plugin.Cfg.ActiveMode.Id != SharedFateCompletionMode.ModeId) return;
+        if (session.SharedFateBaseline.Count > 0) return;
+
+        var expansion = Plugin.Cfg.SharedFateExpansion;
+        Status = $"Loading {expansion.ShortName()} Shared FATE progress";
+        var requested = SharedFateProgressReader.RequestRefresh(expansion);
+        if (requested) await DelayMs(750);
+
+        var deadline = Environment.TickCount64 + 10_000;
+        while (!SharedFateProgressReader.HasProgressFor(zones)
+            && Environment.TickCount64 < deadline
+            && !CancelToken.IsCancellationRequested)
+            await NextFrame(30);
+
+        ErrorIf(!SharedFateProgressReader.HasProgressFor(zones),
+            $"Could not load {expansion.ShortName()} Shared FATE progress. Open Travel > Shared FATE once, then retry.");
+
+        foreach (var targetZone in zones)
+            if (SharedFateProgressReader.TryGetLive(targetZone.Expansion, targetZone.TerritoryId, out var progress))
+                session.SharedFateBaseline[targetZone.TerritoryId] = progress;
     }
 
     private async Task RunStateMachine()
@@ -368,6 +405,11 @@ public sealed partial class AutoFate(IReadOnlyList<ZoneInfo> zones, AutoFateSess
         if (waitForExpiryFateId is not null)
             return GrindState.WaitingForExpiry;
 
+        // Once this zone reaches its maximum Shared FATE rank, do not wait for a chain follow-up;
+        // move straight to the next unfinished zone in the selected expansion.
+        if (SharedFateModeActive && IsSharedFateZoneComplete(zone) && zones.Count > 1)
+            return GrindState.SwapZone;
+
         if (ShouldWaitForFollowUp())
             return GrindState.WaitingForFollowUp;
 
@@ -387,7 +429,7 @@ public sealed partial class AutoFate(IReadOnlyList<ZoneInfo> zones, AutoFateSess
         if (zoneIdleSinceMs == 0)
             zoneIdleSinceMs = Environment.TickCount64;
 
-        if (Plugin.Cfg.SwapZonesWhenEmpty && zones.Count > 1
+        if (ShouldRotateZones && zones.Count > 1
          && Environment.TickCount64 - zoneIdleSinceMs >= IdleWaitBeforeSwapMs)
             return GrindState.SwapZone;
 
@@ -432,6 +474,7 @@ public sealed partial class AutoFate(IReadOnlyList<ZoneInfo> zones, AutoFateSess
         {
             var candidateIndex = (zoneIndex + step) % zones.Count;
             if (session.UnreachableZoneIds.Contains(zones[candidateIndex].TerritoryId)) continue;
+            if (SharedFateModeActive && IsSharedFateZoneComplete(zones[candidateIndex])) continue;
 
             zoneIndex = candidateIndex;
             sessionStuckFateIds.Clear();
@@ -446,13 +489,24 @@ public sealed partial class AutoFate(IReadOnlyList<ZoneInfo> zones, AutoFateSess
     private async Task TickIdleScan()
     {
         await EnsureConsumables();
-        var swapPending = Plugin.Cfg.SwapZonesWhenEmpty && zones.Count > 1;
+        var swapPending = ShouldRotateZones && zones.Count > 1;
         var remainingSec = Math.Max(0L, IdleWaitBeforeSwapMs - (Environment.TickCount64 - zoneIdleSinceMs)) / 1000;
         Status = swapPending
             ? $"Waiting for FATEs in {zone.Name} (swapping in {remainingSec}s)"
             : $"Waiting for FATEs in {zone.Name}";
         await DelayMs(IdleScanIntervalMs);
     }
+
+    private bool SharedFateModeActive => Plugin.Cfg.ActiveMode.Id == SharedFateCompletionMode.ModeId;
+
+    private bool ShouldRotateZones => SharedFateModeActive
+        ? Plugin.Cfg.SharedFateRotateZones
+        : Plugin.Cfg.SwapZonesWhenEmpty;
+
+    private bool IsSharedFateZoneComplete(ZoneInfo candidate)
+        => SharedFateProgressReader.TryGetEffective(
+               candidate, session.SharedFateBaseline, session.CompletedByZone, out var progress)
+        && progress.IsComplete;
 
     private const int ConsumeItemWaitMs = 6_000;
 

@@ -218,6 +218,7 @@ public sealed partial class AutoFate
         if (ended)
         {
             session.CompletedCount++;
+            session.CompletedByZone[zone.TerritoryId] = session.CompletedByZone.GetValueOrDefault(zone.TerritoryId) + 1;
             session.FatesSinceLastBreak++;
             zone.CompletedThisRun++;
             await SettleGemstoneReward();

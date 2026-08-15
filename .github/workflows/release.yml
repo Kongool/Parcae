@@ -1,4 +1,4 @@
-name: Release AutoFateGrind
+name: Release Parcae
 
 on:
   push:
@@ -20,11 +20,6 @@ permissions:
 jobs:
   release:
     runs-on: windows-latest
-    # Job-level so the hub-ping step's `if` can see it — `secrets` can't be used
-    # directly in an `if:` condition, but `env` mapped from a secret can.
-    env:
-      HUB_REPO_PAT: ${{ secrets.HUB_REPO_PAT }}
-
     steps:
       - name: Resolve target tag
         id: tag
@@ -131,32 +126,18 @@ jobs:
           # push then reports "Everything up-to-date" with exit 0, and downstream steps
           # silently consume the corrupted file.
           for ($i = 1; $i -le 5; $i++) {
-            git fetch origin master
-            git rebase -X theirs origin/master
+            git fetch origin main
+            git rebase -X theirs origin/main
             if ($LASTEXITCODE -ne 0) {
               git rebase --abort 2>$null
               Write-Host "Rebase failed (attempt $i); retrying..."
               Start-Sleep -Seconds 2
               continue
             }
-            git push origin HEAD:master
+            git push origin HEAD:main
             if ($LASTEXITCODE -eq 0) { exit 0 }
             Write-Host "Push rejected (attempt $i); retrying after rebase..."
             Start-Sleep -Seconds 2
           }
           Write-Error 'Failed to push repo.json bump after 5 attempts.'
           exit 1
-
-      # Ping the multi-plugin hub repo so it regenerates repo.json immediately
-      # instead of waiting for its hourly cron. The hub workflow re-reads each
-      # plugin's repo.json and refreshes DownloadCount from the GitHub API.
-      - name: Trigger hub repo regeneration
-        if: ${{ env.HUB_REPO_PAT != '' }}
-        shell: bash
-        run: |
-          curl -fsSL -X POST \
-            -H "Authorization: Bearer $HUB_REPO_PAT" \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            https://api.github.com/repos/XeldarAlz/DalamudPlugins/dispatches \
-            -d '{"event_type":"plugin-released","client_payload":{"plugin":"${{ github.event.repository.name }}","version":"${{ steps.tag.outputs.version }}"}}'

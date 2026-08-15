@@ -15,8 +15,22 @@ public static class GemstoneCatalog
     public const uint BicolorGemstoneItemId = 26807;
 
     private static GemstoneTradeItem[]? cached;
+    private static GemstoneTradeItem[]? routable;
+    private static int routableSourceLength = -1;
 
     public static GemstoneTradeItem[] All => cached ??= LoadFromLumina();
+
+    public static GemstoneTradeItem[] Routable
+    {
+        get
+        {
+            var all = All;
+            if (routable is not null && routableSourceLength == all.Length) return routable;
+            routableSourceLength = all.Length;
+            routable = [.. all.Where(i => GemstoneTrader.PickForItem(i.ItemId, null, null) is not null)];
+            return routable;
+        }
+    }
 
     public static GemstoneTradeItem? FindById(uint itemId)
         => Array.Find(All, i => i.ItemId == itemId);
@@ -40,9 +54,9 @@ public static class GemstoneCatalog
     public static uint EnsurePersistedTarget()
     {
         var cfg = Plugin.Cfg;
-        if (cfg.TargetTradeItemId != 0 && FindById(cfg.TargetTradeItemId) is not null)
+        if (cfg.TargetTradeItemId != 0 && Routable.Any(i => i.ItemId == cfg.TargetTradeItemId))
             return cfg.TargetTradeItemId;
-        var fallback = Array.Find(All, i => GemstoneTrader.PickForItem(i.ItemId, null, null) is not null);
+        var fallback = Routable.FirstOrDefault();
         if (fallback is null) return 0;
         cfg.TargetTradeItemId = fallback.ItemId;
         cfg.Save();

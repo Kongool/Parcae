@@ -16,7 +16,6 @@ internal static class IdleHeader
 {
     public static void Draw(Configuration cfg, Plugin plugin)
     {
-        DrawTopStrip(plugin);
         DrawStatusCard(cfg);
     }
 
@@ -92,8 +91,19 @@ internal static class IdleHeader
 
         var zones = ZoneSelection.ResolveStartList(cfg).Count;
         if (zones == 0)
-            return (Styling.AccentAmber, FontAwesomeIcon.MapMarkedAlt, "PICK YOUR ZONES",
-                "Tick zones below to build your grind order.");
+        {
+            if (cfg.ActiveMode.Id == SharedFateCompletionMode.ModeId
+             && SharedFateProgressReader.TryGetLiveSummary(cfg.SharedFateExpansion, out var complete, out var total)
+             && complete == total)
+                return (Styling.AccentMint, FontAwesomeIcon.CheckCircle, "EXPANSION COMPLETE",
+                    $"Every {cfg.SharedFateExpansion.ShortName()} Shared FATE zone is at maximum rank.");
+
+            return (Styling.AccentAmber, FontAwesomeIcon.MapMarkedAlt,
+                cfg.ActiveMode.Id == SharedFateCompletionMode.ModeId ? "NO ROUTE AVAILABLE" : "PICK YOUR ZONES",
+                cfg.ActiveMode.Id == SharedFateCompletionMode.ModeId
+                    ? "No unfinished unlocked Shared FATE zones are available in this expansion."
+                    : "Tick zones below to build your grind order.");
+        }
 
         return (Styling.AccentMint, FontAwesomeIcon.CheckCircle, "READY TO GRIND",
             $"{zones} zone{(zones == 1 ? "" : "s")}  ·  {StopSummary(cfg)}");
@@ -102,6 +112,9 @@ internal static class IdleHeader
     private static string StopSummary(Configuration cfg) => cfg.ActiveMode.Id switch
     {
         MaxGemstonesMode.ModeId => $"stops at {cfg.TargetGemstoneCount} gems",
+        SharedFateCompletionMode.ModeId => cfg.SharedFateRotateZones
+            ? $"completes {cfg.SharedFateExpansion.ShortName()} Shared FATEs"
+            : $"completes one {cfg.SharedFateExpansion.ShortName()} Shared FATE zone",
         RunCountMode.ModeId     => $"stops after {cfg.TargetFateCount} FATEs",
         TimeBoxedMode.ModeId    => $"stops after {cfg.TargetMinutes} min",
         EndlessMode.ModeId      => "runs until you stop",
