@@ -1,3 +1,4 @@
+using AutoFateGrind.Core.Modes;
 using AutoFateGrind.Core.Zones;
 using ECommons.DalamudServices;
 using Lumina.Excel;
@@ -132,6 +133,11 @@ public static class GemstoneTrader
         }
         if (sellers.Count == 0) return null;
 
+        // A locked vendor just times out at the counter: hubs open once every zone in their expansion is at
+        // max Shared FATE rank, zone vendors once their own zone reaches rank 1.
+        sellers.RemoveAll(t => !IsUnlocked(t));
+        if (sellers.Count == 0) return null;
+
         if (preferTerritoryId is { } tid)
         {
             var inZone = sellers.FirstOrDefault(t => t.TerritoryId == tid);
@@ -146,5 +152,17 @@ public static class GemstoneTrader
         }
         var anyHub = sellers.FirstOrDefault(t => t.IsHub);
         return anyHub ?? sellers[0];
+    }
+
+    // Progress that has not loaded yet counts as unlocked, so a missing refresh can never block trading.
+    private static bool IsUnlocked(TraderLocation trader)
+    {
+        if (!SharedFateProgressReader.IsSupported(trader.Expansion)) return true;
+        SharedFateProgressReader.EnsureRequested(trader.Expansion);
+        if (trader.IsHub)
+            return !SharedFateProgressReader.TryGetLiveSummary(trader.Expansion, out var complete, out var total)
+                || complete == total;
+        return !SharedFateProgressReader.TryGetLive(trader.Expansion, trader.TerritoryId, out var progress)
+            || progress.CurrentRank >= 1;
     }
 }

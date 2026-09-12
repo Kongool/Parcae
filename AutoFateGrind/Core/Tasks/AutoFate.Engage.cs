@@ -423,7 +423,7 @@ public sealed partial class AutoFate
         var trader = GemstoneTrader.PickForItem(targetId, zone.TerritoryId, zone.Expansion);
         if (trader is null)
         {
-            Diag($"Trade-on-cap skipped: no registered Bicolor trader sells {target.ItemName}. Pick a different item in /afg config → Trader.");
+            Diag($"Trade-on-cap skipped: no unlocked Bicolor trader sells {target.ItemName} (hub vendors need max Shared FATE rank in every zone of their expansion; zone vendors need rank 1). Pick a different item in /afg config → Trader.");
             return false;
         }
 
