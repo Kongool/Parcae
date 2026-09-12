@@ -158,7 +158,9 @@ public sealed partial class AutoFate
         // Only an entry that fought the fate while Running may book the completion — guards against
         // a re-entry during the lingering 100% frame double-counting.
         var sawRunning = false;
-        var reach = new EngageReachTracker(EngageReachMeters());
+        // Minerva regains uptime within seconds when it can; when it cannot (floor probe refusing water, say)
+        // the fallback walk should not sit out the full BossMod-era stall.
+        var reach = new EngageReachTracker(EngageReachMeters(), CombatIPC.UsesBossMod ? EngageReachStallMs : MinervaEngageReachStallMs);
 
         try
         {
@@ -349,13 +351,15 @@ public sealed partial class AutoFate
     {
         reach.CountReposition();
         Status = $"Closing on {fateName}";
-        Diag($"Engagement stalled on FATE {fateId} ({fateName}): nearest mob {mobDistance:F0}m away (reach {reach.Meters:F0}m) with no approach in {EngageReachStallMs / 1000}s; re-pathing with vnav (attempt {reach.Repositions}/{MaxEngageRepositions})");
+        Diag($"Engagement stalled on FATE {fateId} ({fateName}): nearest mob {mobDistance:F0}m away (reach {reach.Meters:F0}m) with no approach in {reach.StallMs / 1000}s; re-pathing with vnav (attempt {reach.Repositions}/{MaxEngageRepositions})");
 
         var dest = mobPos.OnMesh();
         var tolerance = reach.Meters <= EngageMeleeReachMeters
             ? EngageMeleeApproachToleranceMeters
             : EngageRangedApproachToleranceMeters;
-        var config = MovementConfig.GroundMove.WithTolerance(tolerance);
+        // Never mount for this: the mount cast is cancelled by any steering (Minerva) and clib then spins in its
+        // Mount step until the stall guard fires, so the approach never happens. It is a short walk anyway.
+        var config = MovementConfig.Default.WithTolerance(tolerance);
         var reachMeters = reach.Meters;
 
         bool InRangeOrGone()
@@ -375,12 +379,13 @@ public sealed partial class AutoFate
             Diag($"Reposition for FATE {fateId} faulted: {fault.Message}");
     }
 
-    private sealed class EngageReachTracker(float reachMeters)
+    private sealed class EngageReachTracker(float reachMeters, int stallMs)
     {
         private float anchorDistance = float.MaxValue;
         private long stalledSinceMs = Environment.TickCount64;
 
         public float Meters { get; } = reachMeters;
+        public int StallMs { get; } = stallMs;
         public int Repositions { get; private set; }
 
         public bool Stalled(float nearestDistance)
@@ -404,7 +409,7 @@ public sealed partial class AutoFate
 
             if (nearestDistance > anchorDistance) anchorDistance = nearestDistance;
 
-            return now - stalledSinceMs >= EngageReachStallMs;
+            return now - stalledSinceMs >= StallMs;
         }
 
         public void CountReposition() => Repositions++;
