@@ -31,7 +31,7 @@ internal sealed class DaedalusIPC
         recordExternalTargetWrite = Svc.PluginInterface.GetIpcSubscriber<ulong, object>("Daedalus.Targeting.RecordExternalWrite");
     }
 
-    public bool IsAvailable => isEnabled.HasFunction && changeOperatingMode.HasFunction;
+    public bool IsAvailable => isEnabled.HasFunction && changeOperatingMode.HasAction;
 
     // Called every engage tick. Sends Manual once, then re-asserts every few seconds so another driver's
     // fight-end Off (Questionable shares this gate) can't strand a run mid-FATE.
@@ -39,16 +39,16 @@ internal sealed class DaedalusIPC
     {
         if (engaged && !EzThrottler.Throttle(ReassertKey, ReassertMs)) return;
         engaged = true;
-        IpcGate.Run(changeOperatingMode.HasFunction, () => changeOperatingMode.InvokeAction(StateCommandType.Manual), "[DaedalusIPC] ChangeOperatingMode(Manual) failed");
+        IpcGate.Run(changeOperatingMode.HasAction, () => changeOperatingMode.InvokeAction(StateCommandType.Manual), "[DaedalusIPC] ChangeOperatingMode(Manual) failed");
     }
 
     public void Release()
     {
         if (!engaged) return;
         engaged = false;
-        IpcGate.Run(changeOperatingMode.HasFunction, () => changeOperatingMode.InvokeAction(StateCommandType.Off), "[DaedalusIPC] ChangeOperatingMode(Off) failed");
+        IpcGate.Run(changeOperatingMode.HasAction, () => changeOperatingMode.InvokeAction(StateCommandType.Off), "[DaedalusIPC] ChangeOperatingMode(Off) failed");
     }
 
     public void RecordTargetWrite(ulong gameObjectId)
-        => IpcGate.Run(recordExternalTargetWrite.HasFunction, () => recordExternalTargetWrite.InvokeAction(gameObjectId), "[DaedalusIPC] RecordExternalWrite failed");
+        => IpcGate.Run(recordExternalTargetWrite.HasAction, () => recordExternalTargetWrite.InvokeAction(gameObjectId), "[DaedalusIPC] RecordExternalWrite failed");
 }
