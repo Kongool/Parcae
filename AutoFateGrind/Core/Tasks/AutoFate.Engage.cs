@@ -284,7 +284,14 @@ public sealed partial class AutoFate
 
         Svc.Targets.Target = mob;
         DaedalusIPC.Instance.RecordTargetWrite(mob.GameObjectId);
+        if (mob.GameObjectId != lastFateTargetId)
+        {
+            lastFateTargetId = mob.GameObjectId;
+            Svc.Log.Info($"{AfgConstants.LogPrefix} Targeting {mob.Name} for FATE {fateId} (lv{mob.Level}, {Vector3.Distance(player.Position, mob.Position):F0}m)");
+        }
     }
+
+    private static ulong lastFateTargetId;
 
     // Mid-travel aggro has no FATE id to scan by: target whatever is attacking us (or the nearest hostile
     // already in combat nearby) so Daedalus has something to open on. BossMod mode auto-targets itself.
@@ -299,7 +306,7 @@ public sealed partial class AutoFate
         foreach (var obj in Svc.Objects)
         {
             if (obj is not IBattleNpc { BattleNpcKind: BattleNpcSubKind.Combatant, IsTargetable: true } npc) continue;
-            if (npc.CurrentHp == 0 || !FateMobScanner.IsHostile(npc)) continue;
+            if (npc.CurrentHp == 0 || !FateMobScanner.IsEnemy(npc)) continue;
             var attackingUs = npc.TargetObjectId == player.GameObjectId;
             var fighting = (npc.StatusFlags & StatusFlags.InCombat) != 0;
             if (!attackingUs && !fighting) continue;
