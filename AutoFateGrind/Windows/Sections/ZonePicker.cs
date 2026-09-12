@@ -141,6 +141,9 @@ internal static class ZonePicker
         using var tab = ImRaii.TabItem(label);
         if (!tab) return;
 
+        if (SharedFateProgressReader.IsSupported(exp))
+            SharedFateProgressReader.EnsureRequested(exp);
+
         ImGui.Spacing();
         DrawExpansionToolbar(exp, zones, territoryIds, selected, cfg, controller);
         ImGui.Spacing();
@@ -220,9 +223,28 @@ internal static class ZonePicker
                 ImGui.SetTooltip($"Position {queuePos} in the grind order.");
         }
 
+        DrawSharedFateRank(zone);
         DrawActiveFatePill(zone);
 
         ImGui.Unindent(6f);
+    }
+
+    // Current Shared FATE rank for ShB/EW/DT zones (same data as Travel > Shared FATE), in every mode.
+    private static void DrawSharedFateRank(ZoneInfo zone)
+    {
+        if (!SharedFateProgressReader.IsSupported(zone.Expansion)) return;
+        if (!SharedFateProgressReader.TryGetLive(zone.Expansion, zone.TerritoryId, out var p)) return;
+
+        var text = p.IsComplete
+            ? $"Rank {p.MaxRank} complete"
+            : $"Rank {p.CurrentRank}/{p.MaxRank}  {p.FateProgress}/{p.NeededFates}";
+        ImGui.SameLine(0, 10f);
+        using (ImRaii.PushColor(ImGuiCol.Text, p.IsComplete ? Styling.AccentMintSoft : Styling.TextDim))
+            ImGui.TextUnformatted(text);
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip(p.IsComplete
+                ? "Shared FATE rank maxed in this zone."
+                : $"Shared FATE rank {p.CurrentRank} of {p.MaxRank}: {p.FateProgress} of {p.NeededFates} FATEs toward the next rank.");
     }
 
     private static void DrawActiveFatePill(ZoneInfo zone)
