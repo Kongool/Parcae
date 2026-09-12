@@ -119,6 +119,10 @@ public sealed class Plugin : IDalamudPlugin
 
     public void Dispose()
     {
+        // Cancel any running task first: a hot-reload otherwise leaves the old instance's clib automation
+        // looping on its own (disposed) config, unreachable by the new instance's Stop button.
+        Controller.Stop();
+
         TaskScheduler.UnobservedTaskException -= unobservedTaskHandler;
 
         PluginInterface.UiBuilder.Draw -= WindowSystem.Draw;
