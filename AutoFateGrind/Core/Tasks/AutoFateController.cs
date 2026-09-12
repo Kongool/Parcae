@@ -50,8 +50,7 @@ internal sealed partial class AutoFateController
 
         if (!ExternalPlugins.AllRequiredInstalled())
         {
-            var missing = string.Join(", ", ExternalPlugins.All
-                .Where(p => ExternalPlugins.Catalog[p].Required && !ExternalPlugins.IsInstalled(p))
+            var missing = string.Join(", ", ExternalPlugins.MissingRequired()
                 .Select(p => ExternalPlugins.Catalog[p].DisplayName));
             Diag($"Start aborted: required plugins missing ({missing}).");
             ECommons.DalamudServices.Svc.Chat.PrintError($"[AFG] Cannot start — install all required plugins first: {missing}.");

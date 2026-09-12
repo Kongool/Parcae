@@ -128,10 +128,10 @@ public sealed partial class AutoFate(IReadOnlyList<ZoneInfo> zones, AutoFateSess
     protected override async Task Execute()
     {
         ErrorIf(zones.Count == 0, "No zones to grind.");
-        // Accepts stock BossMod or BossMod Reborn — both expose the same IPC gates.
+        // Whichever combat plugin is selected; stock BossMod and BossMod Reborn expose the same IPC gates.
         ErrorIf(
-            !BossModIPC.Instance.IsAvailable || !ExternalPlugins.IsInstalled(ExternalPlugin.BossMod),
-            "BossMod (or BossMod Reborn) not installed or not loaded.");
+            !CombatIPC.IsAvailable || !CombatIPC.IsInstalled,
+            $"{CombatIPC.DisplayName} not installed or not loaded.");
 
         Svc.Chat.Print($"[AFG] Starting {zone.Name}...");
         lastStateChangedAtMs = Environment.TickCount64;

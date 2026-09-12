@@ -21,7 +21,7 @@ public sealed partial class AutoFate
     private async Task Revive()
     {
         DisableTextAdvance();
-        try { BossModIPC.Instance.ClearActive(); } catch { /* best-effort */ }
+        try { CombatIPC.ClearActive(); } catch { /* best-effort */ }
 
         var startZoneId = Svc.ClientState.TerritoryType;
         var startPos = Svc.Objects.LocalPlayer?.Position;
@@ -237,7 +237,7 @@ public sealed partial class AutoFate
     // without one (death-teleport return, follow-up, or a FATE that popped on us).
     private async Task EnsureObstacleMapForEngage(PublicEvent fate)
     {
-        if (!BossModIPC.Instance.IsAvailable) return;
+        if (!CombatIPC.UsesBossMod || !BossModIPC.Instance.IsAvailable) return;
         if (!fate.IsOnMap) return;
         if (BossModIPC.Instance.HasTempObstacleMap()) return;
         await GenerateObstacleMap(fate);
@@ -249,7 +249,7 @@ public sealed partial class AutoFate
     {
         if (obstacleMapBlacklist.Contains(fate.Id)) return;
         if (Plugin.Cfg.RuntimeBadObstacleMaps.Contains(fate.Id)) return;
-        if (!BossModIPC.Instance.IsAvailable) return;
+        if (!CombatIPC.UsesBossMod || !BossModIPC.Instance.IsAvailable) return;
         if (!NavmeshIPC.Instance.IsReady()) return;
 
         var safe = NavmeshIPC.Instance.NearestPointReachable(fate.Position, 5f, 5f);

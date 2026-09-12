@@ -10,7 +10,14 @@ internal static unsafe class FateMobScanner
 {
     public static bool TryFindNearestMob(uint fateId, Vector3 from, out Vector3 position, out float distance)
     {
-        position = default;
+        var found = TryFindNearestNpc(fateId, from, out var mob, out distance);
+        position = mob?.Position ?? default;
+        return found;
+    }
+
+    public static bool TryFindNearestNpc(uint fateId, Vector3 from, out IBattleNpc? mob, out float distance)
+    {
+        mob = null;
         distance = float.MaxValue;
 
         var objects = Svc.Objects;
@@ -28,7 +35,7 @@ internal static unsafe class FateMobScanner
             if (candidate >= distance) continue;
 
             distance = candidate;
-            position = npc.Position;
+            mob = npc;
         }
 
         return distance < float.MaxValue;

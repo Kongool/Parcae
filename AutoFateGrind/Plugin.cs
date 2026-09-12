@@ -9,6 +9,7 @@ using Dalamud.Game.Command;
 using Dalamud.IoC;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin;
+using Dalamud.Plugin.Ipc;
 using Dalamud.Plugin.Services;
 using ECommons;
 using System.Threading.Tasks;
@@ -41,6 +42,10 @@ public sealed class Plugin : IDalamudPlugin
 
     private readonly EventHandler<UnobservedTaskExceptionEventArgs> unobservedTaskHandler;
 
+    // Polled by Daedalus's automation busy bridge: true while a run is driving the character, so it holds
+    // its external-combat override between FATEs and names Parcae as the source.
+    private readonly ICallGateProvider<bool> isBusyProvider;
+
     public Plugin()
     {
         Instance = this;
@@ -58,6 +63,9 @@ public sealed class Plugin : IDalamudPlugin
         gmAlertWatcher = new GmAlertWatcher();
         partyInviteWatcher = new PartyInviteWatcher();
         dutyWatcher = new DutyWatcher();
+
+        isBusyProvider = PluginInterface.GetIpcProvider<bool>("Parcae.IsBusy");
+        isBusyProvider.RegisterFunc(() => Controller.Running);
 
         mainWindow = new MainWindow(this);
         configWindow = new ConfigWindow(this);
@@ -130,6 +138,7 @@ public sealed class Plugin : IDalamudPlugin
         CommandManager.RemoveHandler(AfgConstants.LegacyCommand);
         CommandManager.RemoveHandler(AfgConstants.AliasCommand);
 
+        isBusyProvider.UnregisterFunc();
         gmAlertWatcher.Dispose();
         partyInviteWatcher.Dispose();
         dutyWatcher.Dispose();

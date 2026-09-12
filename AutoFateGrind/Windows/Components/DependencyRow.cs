@@ -15,17 +15,18 @@ internal static class DependencyRow
         var installed = ExternalPlugins.IsInstalled(plugin);
         var disabled = ExternalPlugins.IsInstalledButDisabled(plugin);
         var installing = PluginInstaller.IsInstalling(plugin);
+        var required = ExternalPlugins.IsRequired(plugin);
 
         ImGui.TableNextRow();
 
         ImGui.TableSetColumnIndex(0);
-        DrawStatusIcon(installed, disabled, info.Required);
+        DrawStatusIcon(installed, disabled, required);
 
         ImGui.TableSetColumnIndex(1);
-        DrawName(info);
+        DrawName(info, required);
 
         ImGui.TableSetColumnIndex(2);
-        DrawAction(plugin, installed, disabled, installing);
+        DrawAction(plugin, info, installed, disabled, installing);
     }
 
     private static void DrawStatusIcon(bool installed, bool disabled, bool required)
@@ -42,14 +43,22 @@ internal static class DependencyRow
             ImGui.TextUnformatted(icon.ToIconString());
     }
 
-    private static void DrawName(ExternalPluginInfo info)
+    private static void DrawName(ExternalPluginInfo info, bool required)
     {
         ImGui.AlignTextToFramePadding();
         using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextStrong))
             ImGui.TextUnformatted(info.DisplayName);
         ImGui.SameLine();
         using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextMuted))
-            ImGui.TextUnformatted(info.Required ? "  required" : "  optional");
+            ImGui.TextUnformatted(required ? "  required" : "  optional");
+
+        if (string.IsNullOrEmpty(info.RepoUrl))
+        {
+            if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
+                using (ImRaii.Tooltip())
+                    ImGui.TextUnformatted("No public repository yet — load it from its build output via Dalamud's Dev Plugin Locations.");
+            return;
+        }
 
         if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
         {
@@ -60,7 +69,7 @@ internal static class DependencyRow
         }
     }
 
-    private static void DrawAction(ExternalPlugin plugin, bool installed, bool disabled, bool installing)
+    private static void DrawAction(ExternalPlugin plugin, ExternalPluginInfo info, bool installed, bool disabled, bool installing)
     {
         var size = new Vector2(110 * ImGuiHelpers.GlobalScale, 0);
         if (installed)
@@ -78,6 +87,16 @@ internal static class DependencyRow
                         "FATE turn-ins still work (AFG drives them directly), but gemstone\n" +
                         "auto-trade relies on this toggle to clear the trader's dialogue.\n" +
                         "Turn it on in TextAdvance's settings window (/xlplugins -> TextAdvance).");
+            return;
+        }
+
+        if (!info.OneClickInstall)
+        {
+            using (ImRaii.PushColor(ImGuiCol.Text, Styling.TextMuted))
+            {
+                ImGui.AlignTextToFramePadding();
+                ImGui.TextUnformatted("not installed");
+            }
             return;
         }
 

@@ -9,6 +9,7 @@ using clib.Extensions;
 using clib.TaskSystem;
 using clib.Utils;
 using Dalamud.Game.ClientState.Conditions;
+using Dalamud.Game.ClientState.Objects.Types;
 using ECommons.DalamudServices;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Fate;
@@ -136,7 +137,7 @@ public sealed partial class AutoFate
         if (fate is null) return ExitReason.Continue;
         var fateId = fate.Id;
 
-        var preset = Plugin.Cfg.CombatPresetName;
+        var preset = CombatIPC.PresetName;
         EnsureCombatPreset(preset);
         SyncToFate(fateId);
         AssertPresetActive(preset);
@@ -185,7 +186,7 @@ public sealed partial class AutoFate
 
                 if (Svc.Condition[ConditionFlag.Mounted])
                 {
-                    BossModIPC.Instance.ClearActive();
+                    CombatIPC.ClearActive();
                     await DismountViaOp($"dismount-engage-{fateId}");
                     AssertPresetActive(preset);
                 }
@@ -195,6 +196,7 @@ public sealed partial class AutoFate
                 }
 
                 SyncToFate(fateId);
+                EnsureFateTarget(fateId);
 
                 if (fate.Rule == PublicEvent.FateRule.Collect && !collectTextAdvanceArmed)
                 {
@@ -209,7 +211,7 @@ public sealed partial class AutoFate
         }
         finally
         {
-            BossModIPC.Instance.ClearActive();
+            CombatIPC.ClearActive();
             if (collectTextAdvanceArmed) DisableTextAdvance();
         }
 
@@ -265,6 +267,19 @@ public sealed partial class AutoFate
         return role is RoleTank or RoleMelee ? EngageMeleeReachMeters : EngageRangedReachMeters;
     }
 
+    // Daedalus never pulls on its own: with the override held it opens on the driver's hard target, so keep
+    // a live FATE mob targeted whenever we have none. BossMod mode is untouched (its AutoTarget does this).
+    private static void EnsureFateTarget(uint fateId)
+    {
+        if (CombatIPC.UsesBossMod) return;
+        if (Svc.Objects.LocalPlayer is not { } player) return;
+        if (Svc.Targets.Target is IBattleNpc { IsTargetable: true } current && current.CurrentHp > 0) return;
+        if (!FateMobScanner.TryFindNearestNpc(fateId, player.Position, out var mob, out _) || mob is null) return;
+
+        Svc.Targets.Target = mob;
+        DaedalusIPC.Instance.RecordTargetWrite(mob.GameObjectId);
+    }
+
     private async Task<bool> TickEngagementWatchdog(uint fateId, PublicEvent fate, EngageReachTracker reach)
     {
         if (fate.Rule == PublicEvent.FateRule.Collect) return false;
@@ -317,7 +332,7 @@ public sealed partial class AutoFate
                 && live <= reachMeters;
         }
 
-        BossModIPC.Instance.ClearActive();
+        CombatIPC.ClearActive();
         var op = new MoveOp(o => o.MoveInZone(dest, config, InRangeOrGone));
         await RunCancellable(op, EngageRepositionWatchdogMs, $"engage-reposition-{fateId}",
             StuckDetector.IdleStallAbort(StuckDetector.IdleStallTimeoutMs));

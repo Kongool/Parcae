@@ -9,9 +9,7 @@ internal static class DependencyBanner
 {
     public static void Draw(Plugin plugin)
     {
-        var missing = ExternalPlugins.All
-            .Where(p => ExternalPlugins.Catalog[p].Required && !ExternalPlugins.IsInstalled(p))
-            .ToArray();
+        var missing = ExternalPlugins.MissingRequired().ToArray();
         if (missing.Length > 0)
         {
             var names = string.Join(", ", missing.Select(p => ExternalPlugins.Catalog[p].DisplayName));

@@ -60,3 +60,15 @@ public enum FateSortCriterion
     Level,
     Name,
 }
+
+public enum CombatPlugin
+{
+    BossMod,
+    Minerva,
+}
+
+public enum NavigationPlugin
+{
+    Vnavmesh,
+    Ariadne,
+}

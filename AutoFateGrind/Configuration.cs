@@ -38,6 +38,12 @@ public sealed class Configuration : IPluginConfiguration
 
     public string CombatPresetName { get; set; } = Core.AfgConstants.BundledCombatPresetName;
 
+    // Which external plugin fills each role; the unselected alternative is optional, not missing.
+    public CombatPlugin CombatPlugin { get; set; } = CombatPlugin.BossMod;
+    public NavigationPlugin NavigationPlugin { get; set; } = NavigationPlugin.Vnavmesh;
+    // Minerva dodge preset claimed during FATE combat (Minerva always has "Default").
+    public string MinervaPresetName { get; set; } = Core.Ipc.MinervaIPC.DefaultPresetName;
+
     public int MinTimeRemainingSec { get; set; } = 120;
     public int MaxProgressPct { get; set; } = 90;
 

@@ -246,7 +246,7 @@ public sealed partial class AutoFate
         Status = "Clearing aggro";
         Diag("In combat during travel; enabling rotation to fight free before resuming");
 
-        var preset = Plugin.Cfg.CombatPresetName;
+        var preset = CombatIPC.PresetName;
         EnsureCombatPreset(preset);
         if (Svc.Condition[ConditionFlag.Mounted]) await DismountViaOp("dismount-clearcombat");
         AssertPresetActive(preset);
@@ -261,14 +261,14 @@ public sealed partial class AutoFate
                 if (IsPlayerKO()) break;
                 // A real FATE may have started on top of us; let the state machine take over.
                 if (PublicEvent.CurrentFate is { State: FateState.Running }) break;
-                if (Svc.Condition[ConditionFlag.Mounted]) { BossModIPC.Instance.ClearActive(); await DismountViaOp("dismount-clearcombat"); }
+                if (Svc.Condition[ConditionFlag.Mounted]) { CombatIPC.ClearActive(); await DismountViaOp("dismount-clearcombat"); }
                 AssertPresetActive(preset);
                 await NextFrame(30);
             }
         }
         finally
         {
-            BossModIPC.Instance.ClearActive();
+            CombatIPC.ClearActive();
         }
 
         if (Svc.Condition[ConditionFlag.InCombat])
@@ -333,7 +333,8 @@ public sealed partial class AutoFate
     private void EnsureCombatPreset(string preset)
     {
         if (presetEnsured) return;
-        if (preset != DefaultCombatPreset.Name) { presetEnsured = true; return; }
+        // Only the bundled BossMod preset is something we can create; Minerva presets are the user's own.
+        if (!CombatIPC.UsesBossMod || preset != DefaultCombatPreset.Name) { presetEnsured = true; return; }
 
         if (BossModIPC.Instance.GetPreset(preset) is null)
         {
@@ -346,6 +347,15 @@ public sealed partial class AutoFate
 
     private void AssertPresetActive(string preset)
     {
+        if (!CombatIPC.UsesBossMod)
+        {
+            DaedalusIPC.Instance.Engage();
+            if (MinervaIPC.Instance.GetActive() == preset) return;
+            if (!MinervaIPC.Instance.Apply(preset))
+                Diag($"Minerva.ApplyPreset('{preset}') returned false — preset may not exist in Minerva.");
+            return;
+        }
+
         if (BossModIPC.Instance.GetActive() == preset) return;
 
         if (!BossModIPC.Instance.SetActive(preset))

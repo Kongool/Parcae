@@ -1,13 +1,29 @@
+using AutoFateGrind.Core.Ipc;
 using AutoFateGrind.Windows.Components;
 
 namespace AutoFateGrind.Windows.Sections.Config;
 
 internal static class GeneralSettings
 {
+    private static readonly CombatPlugin[] combatPlugins = [CombatPlugin.BossMod, CombatPlugin.Minerva];
+    private static readonly SettingsControls.Choices.Choice[] combatChoices =
+    [
+        new("BossMod", "BossMod or BossMod Reborn: auto-rotation, auto-target, dodging, and obstacle maps through the bundled Parcae AI preset."),
+        new("Minerva + Daedalus", "Minerva dodges mechanics through the preset you pick; Daedalus runs the rotation while Parcae keeps a FATE mob hard-targeted for it. Both are required."),
+    ];
+
+    private static readonly NavigationPlugin[] navigationPlugins = [NavigationPlugin.Vnavmesh, NavigationPlugin.Ariadne];
+    private static readonly SettingsControls.Choices.Choice[] navigationChoices =
+    [
+        new("vnavmesh", "Builds the navmesh in-game and drives all pathing and movement."),
+        new("Ariadne", "Cached navmeshes from Mnemosyne. Ariadne answers the vnavmesh IPC when vnavmesh is not loaded, so movement works unchanged."),
+    ];
+
     public static void Draw(Configuration cfg)
     {
         DrawWindowGroup(cfg);
         DrawBehaviorGroup(cfg);
+        DrawPluginsGroup(cfg);
     }
 
     private static void DrawWindowGroup(Configuration cfg)
@@ -52,5 +68,56 @@ internal static class GeneralSettings
             SettingsControls.ToggleWidth,
             () => SettingsControls.DrawToggle(cfg, () => cfg.AutoResumeOnFault, v => cfg.AutoResumeOnFault = v, "##gen_autoresume"),
             SettingsRow.ToggleHeight);
+    }
+
+    private static void DrawPluginsGroup(Configuration cfg)
+    {
+        using var group = SettingsGroup.Begin("Plugins");
+
+        var combatSelected = Math.Max(0, Array.IndexOf(combatPlugins, cfg.CombatPlugin));
+        SettingsRow.Draw("Combat plugin",
+            "Which plugin Parcae hands combat to when a FATE is engaged. Only the selected one counts as a required dependency. Takes effect on the next engagement.",
+            SettingsControls.RowComboWidth,
+            () => SettingsControls.Choices.DrawCombo("##gen_combat", combatChoices, combatSelected, choice =>
+            {
+                cfg.CombatPlugin = combatPlugins[choice];
+                cfg.SaveDebounced();
+            }));
+        SettingsRow.Caption(combatChoices[combatSelected].Detail);
+
+        if (cfg.CombatPlugin == CombatPlugin.Minerva)
+            DrawMinervaPreset(cfg);
+
+        var navSelected = Math.Max(0, Array.IndexOf(navigationPlugins, cfg.NavigationPlugin));
+        SettingsRow.Draw("Navigation plugin",
+            "Which plugin provides pathfinding and movement. Only the selected one counts as a required dependency.",
+            SettingsControls.RowComboWidth,
+            () => SettingsControls.Choices.DrawCombo("##gen_nav", navigationChoices, navSelected, choice =>
+            {
+                cfg.NavigationPlugin = navigationPlugins[choice];
+                cfg.SaveDebounced();
+            }));
+        SettingsRow.Caption(navigationChoices[navSelected].Detail);
+    }
+
+    private static void DrawMinervaPreset(Configuration cfg)
+    {
+        var presets = MinervaIPC.Instance.IsAvailable ? MinervaIPC.Instance.ListPresets() : [];
+        if (presets.Length == 0)
+        {
+            SettingsRow.Note($"Minerva is not loaded. Preset \"{cfg.MinervaPresetName}\" will be applied once it is.");
+            return;
+        }
+
+        var choices = presets.Select(p => new SettingsControls.Choices.Choice(p, "")).ToArray();
+        var selected = Math.Max(0, Array.IndexOf(presets, cfg.MinervaPresetName));
+        SettingsRow.Draw("Minerva preset",
+            "Minerva dodge preset Parcae claims while fighting a FATE and releases afterwards. Create and tune presets in Minerva; \"Default\" always exists.",
+            SettingsControls.RowComboWidth,
+            () => SettingsControls.Choices.DrawCombo("##gen_minerva_preset", choices, selected, choice =>
+            {
+                cfg.MinervaPresetName = presets[choice];
+                cfg.SaveDebounced();
+            }));
     }
 }
