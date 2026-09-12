@@ -276,7 +276,10 @@ public sealed partial class AutoFate
     {
         if (CombatIPC.UsesBossMod) return;
         if (Svc.Objects.LocalPlayer is not { } player) return;
-        if (Svc.Targets.Target is IBattleNpc { IsTargetable: true } current && current.CurrentHp > 0) return;
+        // Only a mob of this FATE counts: a Yellowjacket that aggroed on the way in must not keep the target
+        // slot while the FATE's own mobs (the ones that progress it) stand untouched.
+        if (Svc.Targets.Target is IBattleNpc { IsTargetable: true } current && current.CurrentHp > 0
+            && FateMobScanner.IsFateMob(current, fateId)) return;
         if (!FateMobScanner.TryFindNearestNpc(fateId, player.Position, out var mob, out _) || mob is null) return;
 
         Svc.Targets.Target = mob;

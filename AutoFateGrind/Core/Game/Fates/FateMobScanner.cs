@@ -15,6 +15,9 @@ internal static unsafe class FateMobScanner
         return found;
     }
 
+    public static bool IsFateMob(IBattleNpc npc, uint fateId)
+        => ((CSGameObject*)npc.Address)->FateId == fateId;
+
     public static bool TryFindNearestNpc(uint fateId, Vector3 from, out IBattleNpc? mob, out float distance)
     {
         mob = null;
