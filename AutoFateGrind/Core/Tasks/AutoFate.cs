@@ -442,7 +442,13 @@ public sealed partial class AutoFate(IReadOnlyList<ZoneInfo> zones, AutoFateSess
     {
         Status = $"Teleporting to {zone.Name}";
         Diag($"Off-zone (in {Svc.ClientState.TerritoryType}), teleporting to {zone.TerritoryId}");
-        if (await TeleportToTerritory(zone.TerritoryId, zone.CentralLanding, "teleport-to-zone", TeleportWatchdogMs))
+        // Aim at one of the zone's own aetherytes: clib resolves the nearest Aetheryte row to the point, shards
+        // included, and a shard near the origin can belong to a neighbouring city's aethernet (Lower La Noscea
+        // landed in Limsa). A real aetheryte at distance zero always wins.
+        var landing = ZoneAetherytes.TryFindNearest(zone.TerritoryId, zone.CentralLanding, out var aetheryte)
+            ? aetheryte.Position
+            : zone.CentralLanding;
+        if (await TeleportToTerritory(zone.TerritoryId, landing, "teleport-to-zone", TeleportWatchdogMs))
         {
             consecutiveZoneTeleportFailures = 0;
             session.UnreachableZoneIds.Remove(zone.TerritoryId);
