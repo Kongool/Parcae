@@ -52,6 +52,8 @@ public sealed partial class AutoFate(IReadOnlyList<ZoneInfo> zones, AutoFateSess
     private const float EngageMeleeApproachToleranceMeters  = 2.5f;
     private const float EngageRangedApproachToleranceMeters = 15f;
     private const int   MaxEngageRepositions = 3;
+    // Minerva only walks to regain uptime on the target inside this radius; beyond it Parcae closes the gap.
+    private const float MinervaUptimeLeashMeters = 30f;
     // Cap on fighting off a mob that aggroed mid-travel, so an unkillable add can't park the run.
     private const int   CombatClearTimeoutMs = 30_000;
     private const int   RaiseWaitMs = 30_000;

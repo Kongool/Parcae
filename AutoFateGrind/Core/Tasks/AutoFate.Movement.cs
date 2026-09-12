@@ -263,6 +263,7 @@ public sealed partial class AutoFate
                 if (PublicEvent.CurrentFate is { State: FateState.Running }) break;
                 if (Svc.Condition[ConditionFlag.Mounted]) { CombatIPC.ClearActive(); await DismountViaOp("dismount-clearcombat"); }
                 AssertPresetActive(preset);
+                EnsureAggroTarget();
                 await NextFrame(30);
             }
         }

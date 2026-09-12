@@ -9,6 +9,7 @@ using clib.Extensions;
 using clib.TaskSystem;
 using clib.Utils;
 using Dalamud.Game.ClientState.Conditions;
+using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.ClientState.Objects.Types;
 using ECommons.DalamudServices;
 using FFXIVClientStructs.FFXIV.Client.Game;
@@ -280,6 +281,37 @@ public sealed partial class AutoFate
         DaedalusIPC.Instance.RecordTargetWrite(mob.GameObjectId);
     }
 
+    // Mid-travel aggro has no FATE id to scan by: target whatever is attacking us (or the nearest hostile
+    // already in combat nearby) so Daedalus has something to open on. BossMod mode auto-targets itself.
+    private static void EnsureAggroTarget()
+    {
+        if (CombatIPC.UsesBossMod) return;
+        if (Svc.Objects.LocalPlayer is not { } player) return;
+        if (Svc.Targets.Target is IBattleNpc { IsTargetable: true } current && current.CurrentHp > 0) return;
+
+        IBattleNpc? best = null;
+        var bestDistance = float.MaxValue;
+        foreach (var obj in Svc.Objects)
+        {
+            if (obj is not IBattleNpc { BattleNpcKind: BattleNpcSubKind.Combatant, IsTargetable: true } npc) continue;
+            if (npc.CurrentHp == 0) continue;
+            var attackingUs = npc.TargetObjectId == player.GameObjectId;
+            var fighting = (npc.StatusFlags & StatusFlags.InCombat) != 0;
+            if (!attackingUs && !fighting) continue;
+
+            var distance = Vector3.Distance(player.Position, npc.Position);
+            if (!attackingUs && distance > MinervaUptimeLeashMeters) continue;
+            if (attackingUs) distance -= 1000f; // an actual attacker always outranks a bystander in combat
+            if (distance >= bestDistance) continue;
+            bestDistance = distance;
+            best = npc;
+        }
+        if (best is null) return;
+
+        Svc.Targets.Target = best;
+        DaedalusIPC.Instance.RecordTargetWrite(best.GameObjectId);
+    }
+
     private async Task<bool> TickEngagementWatchdog(uint fateId, PublicEvent fate, EngageReachTracker reach)
     {
         if (fate.Rule == PublicEvent.FateRule.Collect) return false;
@@ -293,7 +325,9 @@ public sealed partial class AutoFate
             return false;
         }
 
-        if (!reach.Stalled(mobDistance)) return false;
+        var stalled = reach.Stalled(mobDistance);
+        var beyondLeash = !CombatIPC.UsesBossMod && mobDistance > MinervaUptimeLeashMeters;
+        if (!stalled && !beyondLeash) return false;
 
         var fateName = fate.Name;
 
