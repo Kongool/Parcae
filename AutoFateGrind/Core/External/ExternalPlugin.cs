@@ -73,6 +73,8 @@ public static class ExternalPlugins
         ExternalPlugin.BossMod  => Plugin.Cfg.CombatPlugin == CombatPlugin.BossMod,
         ExternalPlugin.Minerva  => Plugin.Cfg.CombatPlugin == CombatPlugin.Minerva,
         ExternalPlugin.Daedalus => Plugin.Cfg.CombatPlugin == CombatPlugin.Minerva,
+        // TextAdvance only speeds up Collect turn-ins; AFG drives hand-ins directly, so it is optional.
+        ExternalPlugin.TextAdvance => false,
         _ => true,
     };
 
