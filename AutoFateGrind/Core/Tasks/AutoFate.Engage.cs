@@ -338,8 +338,10 @@ public sealed partial class AutoFate
         }
 
         var stalled = reach.Stalled(mobDistance);
-        var beyondLeash = !CombatIPC.UsesBossMod && mobDistance > MinervaUptimeLeashMeters;
-        if (!stalled && !beyondLeash) return false;
+        // Minerva mode: Parcae owns the approach. Minerva only computes its uptime walk while it has something
+        // to dodge (a module or an enemy cast bar); on plain FATE trash it stands down, so nobody would close.
+        var ownApproach = !CombatIPC.UsesBossMod && mobDistance > reach.Meters + MinervaApproachTriggerMeters;
+        if (!stalled && !ownApproach) return false;
 
         var fateName = fate.Name;
 
@@ -360,6 +362,12 @@ public sealed partial class AutoFate
     private async Task RepositionToFateMob(uint fateId, string fateName, Vector3 mobPos, float mobDistance, EngageReachTracker reach)
     {
         reach.CountReposition();
+        if (!CombatIPC.UsesBossMod)
+        {
+            await ApproachFateMob(fateId, fateName, mobDistance, reach);
+            return;
+        }
+
         Status = $"Closing on {fateName}";
         Diag($"Engagement stalled on FATE {fateId} ({fateName}): nearest mob {mobDistance:F0}m away (reach {reach.Meters:F0}m) with no approach in {reach.StallMs / 1000}s; re-pathing with vnav (attempt {reach.Repositions}/{MaxEngageRepositions})");
 
@@ -389,6 +397,64 @@ public sealed partial class AutoFate
             Diag($"Reposition for FATE {fateId} faulted: {fault.Message}");
     }
 
+
+    // Parcae-driven approach for Minerva + Daedalus mode. Daedalus stays armed the whole way so it opens the
+    // moment the mob is in reach. The path is re-issued whenever the follower stops early (and logged, so a
+    // plugin cancelling it shows up), and a walk that makes no ground for a while gives up.
+    private async Task ApproachFateMob(uint fateId, string fateName, float startDistance, EngageReachTracker reach)
+    {
+        Status = $"Closing on {fateName}";
+        Diag($"Approach for FATE {fateId} ({fateName}): nearest mob {startDistance:F0}m away (reach {reach.Meters:F0}m); walking in (attempt {reach.Repositions}/{MaxEngageRepositions})");
+
+        var tolerance = reach.Meters <= EngageMeleeReachMeters
+            ? EngageMeleeApproachToleranceMeters
+            : EngageRangedApproachToleranceMeters;
+        var deadline = Environment.TickCount64 + EngageRepositionWatchdogMs;
+        var lastIssueAtMs = 0L;
+        var issues = 0;
+        var progressPos = Svc.Objects.LocalPlayer?.Position ?? default;
+        var progressAtMs = Environment.TickCount64;
+
+        try
+        {
+            while (!CancelToken.IsCancellationRequested && Environment.TickCount64 < deadline)
+            {
+                if (PublicEvent.GetFateById(fateId) is not { State: FateState.Running }) return;
+                if (Svc.Objects.LocalPlayer is not { } player) return;
+                if (Svc.Condition[ConditionFlag.Mounted]) return;
+                if (!FateMobScanner.TryFindNearestNpc(fateId, player.Position, out var mob, out var distance) || mob is null) return;
+                if (distance <= reach.Meters) return;
+
+                var now = Environment.TickCount64;
+                if (Vector3.Distance(player.Position, progressPos) >= 1f)
+                {
+                    progressPos = player.Position;
+                    progressAtMs = now;
+                }
+                else if (now - progressAtMs >= MinervaApproachStuckMs)
+                {
+                    Diag($"Approach for FATE {fateId}: no ground made in {MinervaApproachStuckMs / 1000}s ({distance:F0}m left, navBusy={NavmeshIPC.Instance.IsBusy()}); giving up this attempt");
+                    return;
+                }
+
+                if (!NavmeshIPC.Instance.IsBusy() && now - lastIssueAtMs >= MinervaApproachReissueMs)
+                {
+                    issues++;
+                    lastIssueAtMs = now;
+                    if (issues > 1)
+                        Diag($"Approach for FATE {fateId}: path stopped early at {distance:F0}m; re-issuing (#{issues})");
+                    if (!NavmeshIPC.Instance.PathfindAndMoveCloseTo(mob.Position, tolerance))
+                        Diag($"Approach for FATE {fateId}: PathfindAndMoveCloseTo rejected ({distance:F0}m to {mob.Name})");
+                }
+
+                await NextFrame(5);
+            }
+        }
+        finally
+        {
+            NavmeshIPC.Instance.Stop();
+        }
+    }
     private sealed class EngageReachTracker(float reachMeters, int stallMs)
     {
         private float anchorDistance = float.MaxValue;

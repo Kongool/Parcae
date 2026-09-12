@@ -55,6 +55,10 @@ public sealed partial class AutoFate(IReadOnlyList<ZoneInfo> zones, AutoFateSess
     // Minerva only walks to regain uptime on the target inside this radius; beyond it Parcae closes the gap.
     private const float MinervaUptimeLeashMeters = 30f;
     private const int   MinervaEngageReachStallMs = 4_000;
+    // Parcae owns the approach in Minerva mode: start walking as soon as the nearest mob is this far past reach.
+    private const float MinervaApproachTriggerMeters = 2f;
+    private const int   MinervaApproachReissueMs = 1_500;
+    private const int   MinervaApproachStuckMs = 6_000;
     // Cap on fighting off a mob that aggroed mid-travel, so an unkillable add can't park the run.
     private const int   CombatClearTimeoutMs = 30_000;
     private const int   RaiseWaitMs = 30_000;

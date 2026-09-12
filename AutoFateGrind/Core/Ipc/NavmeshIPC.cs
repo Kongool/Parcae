@@ -20,6 +20,7 @@ internal sealed class NavmeshIPC
     private readonly ICallGateSubscriber<float> navBuildProgress;
     private readonly ICallGateSubscriber<Vector3, float, float, Vector3?> nearestPointReachable;
     private readonly ICallGateSubscriber<object> pathStop;
+    private readonly ICallGateSubscriber<Vector3, bool, float, bool> pathfindAndMoveCloseTo;
 
     private NavmeshIPC()
     {
@@ -30,6 +31,7 @@ internal sealed class NavmeshIPC
         navBuildProgress            = Svc.PluginInterface.GetIpcSubscriber<float>("vnavmesh.Nav.BuildProgress");
         nearestPointReachable       = Svc.PluginInterface.GetIpcSubscriber<Vector3, float, float, Vector3?>("vnavmesh.Query.Mesh.NearestPointReachable");
         pathStop                    = Svc.PluginInterface.GetIpcSubscriber<object>("vnavmesh.Path.Stop");
+        pathfindAndMoveCloseTo      = Svc.PluginInterface.GetIpcSubscriber<Vector3, bool, float, bool>("vnavmesh.SimpleMove.PathfindAndMoveCloseTo");
     }
 
     // True once the current zone's navmesh is fully built and queryable; obstacle-map/pathfind IPC throw
@@ -65,6 +67,10 @@ internal sealed class NavmeshIPC
             () => nearestPointReachable.InvokeFunc(position, halfExtentXZ, halfExtentY),
             (Vector3?)null, "[NavmeshIPC] NearestPointReachable failed");
 
+
+    // Pathfind and walk to within range of dest on the ground. False when the request was rejected.
+    public bool PathfindAndMoveCloseTo(Vector3 dest, float range)
+        => IpcGate.Invoke(pathfindAndMoveCloseTo.HasFunction, () => pathfindAndMoveCloseTo.InvokeFunc(dest, false, range), false, "[NavmeshIPC] PathfindAndMoveCloseTo failed");
     public void Stop()
         => IpcGate.Run(pathStop.HasFunction, pathStop.InvokeAction, "[NavmeshIPC] Stop failed");
 }
