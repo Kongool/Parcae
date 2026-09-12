@@ -2,6 +2,7 @@ using Dalamud.Game.ClientState.Objects.Types;
 using ECommons.DalamudServices;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using System.Numerics;
+using CSCharacter = FFXIVClientStructs.FFXIV.Client.Game.Character.Character;
 using CSGameObject = FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject;
 
 namespace AutoFateGrind.Core.Game.Fates;
@@ -15,8 +16,11 @@ internal static unsafe class FateMobScanner
         return found;
     }
 
+    // Friendly combatants (the Yellowjacket guards in Lower La Noscea) are FATE-tagged too; only an enemy counts.
+    public static bool IsHostile(IBattleNpc npc) => ((CSCharacter*)npc.Address)->IsHostile;
+
     public static bool IsFateMob(IBattleNpc npc, uint fateId)
-        => ((CSGameObject*)npc.Address)->FateId == fateId;
+        => ((CSGameObject*)npc.Address)->FateId == fateId && IsHostile(npc);
 
     public static bool TryFindNearestNpc(uint fateId, Vector3 from, out IBattleNpc? mob, out float distance)
     {
@@ -33,6 +37,7 @@ internal static unsafe class FateMobScanner
             var native = (CSGameObject*)npc.Address;
             if (native->FateId != fateId) continue;
             if (native->BattleNpcSubKind != BattleNpcSubKind.Combatant) continue;
+            if (!IsHostile(npc)) continue;
 
             var candidate = Vector3.Distance(from, npc.Position);
             if (candidate >= distance) continue;

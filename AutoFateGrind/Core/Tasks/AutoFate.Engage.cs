@@ -299,7 +299,7 @@ public sealed partial class AutoFate
         foreach (var obj in Svc.Objects)
         {
             if (obj is not IBattleNpc { BattleNpcKind: BattleNpcSubKind.Combatant, IsTargetable: true } npc) continue;
-            if (npc.CurrentHp == 0) continue;
+            if (npc.CurrentHp == 0 || !FateMobScanner.IsHostile(npc)) continue;
             var attackingUs = npc.TargetObjectId == player.GameObjectId;
             var fighting = (npc.StatusFlags & StatusFlags.InCombat) != 0;
             if (!attackingUs && !fighting) continue;
