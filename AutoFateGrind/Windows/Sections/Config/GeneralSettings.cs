@@ -19,6 +19,13 @@ internal static class GeneralSettings
         new("Ariadne", "Cached navmeshes from Mnemosyne. Ariadne answers the vnavmesh IPC when vnavmesh is not loaded, so movement works unchanged."),
     ];
 
+    // Index 0 = left, 1 = right, matching the shared dock's edge numbering.
+    private static readonly SettingsControls.Choices.Choice[] dockSideChoices =
+    [
+        new("Left", "Tab pinned to the left edge of the screen; its panel pops out to the right."),
+        new("Right", "Tab pinned to the right edge of the screen; its panel pops out to the left."),
+    ];
+
     public static void Draw(Configuration cfg)
     {
         DrawWindowGroup(cfg);
@@ -45,6 +52,23 @@ internal static class GeneralSettings
                 Plugin.Instance.LiveFateWindow.IsOpen = v;
             }, "##gen_popout"),
             SettingsRow.ToggleHeight);
+
+        SettingsRow.Draw("Edge dock tab",
+            "Show a Parcae tab on the screen edge, stacked with Charon's and Daedalus's. Point at it for the live tracker and run controls; click to pin it open.",
+            SettingsControls.ToggleWidth,
+            () => SettingsControls.DrawToggle(cfg, () => cfg.EdgeDockEnabled, v => cfg.EdgeDockEnabled = v, "##gen_edgedock"),
+            SettingsRow.ToggleHeight);
+
+        var sideSelected = cfg.EdgeDockRightSide ? 1 : 0;
+        SettingsRow.Draw("Dock side",
+            "Which screen edge the tab sits on. Docks from Charon and Daedalus on the same edge stack with it as one group.",
+            SettingsControls.RowComboWidth,
+            () => SettingsControls.Choices.DrawCombo("##gen_edgedock_side", dockSideChoices, sideSelected, choice =>
+            {
+                cfg.EdgeDockRightSide = choice == 1;
+                cfg.SaveDebounced();
+            }));
+        SettingsRow.Caption(dockSideChoices[sideSelected].Detail);
     }
 
     private static void DrawBehaviorGroup(Configuration cfg)

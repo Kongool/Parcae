@@ -38,7 +38,32 @@ public sealed class LiveFateWindow : Window, IDisposable
         Plugin.Cfg.Save();
     }
 
-    public override void Draw()
+    public override void Draw() => DrawBody();
+
+    // The edge-dock panel: run controls above the same body this popout draws.
+    public void DrawDockPanel()
+    {
+        DrawRunControls();
+        ImGui.Separator();
+        DrawBody();
+    }
+
+    private void DrawRunControls()
+    {
+        var controller = plugin.Controller;
+        if (controller.Running)
+        {
+            if ((controller.CanPause || controller.Paused)
+                && ImGui.SmallButton(controller.Paused ? "Resume##dock" : "Pause##dock"))
+                controller.TogglePause();
+            ImGui.SameLine();
+            if (ImGui.SmallButton("Stop##dock")) controller.Stop();
+            ImGui.SameLine();
+        }
+        if (ImGui.SmallButton("Open Parcae##dock")) plugin.ToggleMainUi();
+    }
+
+    public void DrawBody()
     {
         using var style = Styling.PushWindowStyle();
 

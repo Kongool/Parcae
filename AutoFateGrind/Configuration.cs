@@ -49,6 +49,9 @@ public sealed class Configuration : IPluginConfiguration
 
     public bool SwapZonesWhenEmpty { get; set; } = true;
     public bool ShowLivePopout { get; set; } = false;
+    // Parcae's tab on the screen-edge dock shared with Charon and Daedalus.
+    public bool EdgeDockEnabled { get; set; } = true;
+    public bool EdgeDockRightSide { get; set; } = true;
 
     // Auto-restart on fault, bounded by MaxConsecutiveStateErrors.
     public bool AutoResumeOnFault { get; set; } = true;

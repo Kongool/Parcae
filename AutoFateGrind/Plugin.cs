@@ -39,6 +39,7 @@ public sealed class Plugin : IDalamudPlugin
     private readonly DependenciesWindow dependenciesWindow;
     private readonly RunHistoryWindow runHistoryWindow;
     internal LiveFateWindow LiveFateWindow { get; }
+    private readonly EdgeDockWindow edgeDockWindow;
 
     private readonly EventHandler<UnobservedTaskExceptionEventArgs> unobservedTaskHandler;
 
@@ -73,6 +74,10 @@ public sealed class Plugin : IDalamudPlugin
         dependenciesWindow = new DependenciesWindow();
         runHistoryWindow = new RunHistoryWindow();
         LiveFateWindow = new LiveFateWindow(this) { IsOpen = Configuration.ShowLivePopout };
+        edgeDockWindow = new EdgeDockWindow(
+        [
+            new EdgeDockWindow.Tab(ParcaeDockTab.Parcae, "Parcae", () => true, LiveFateWindow.DrawDockPanel),
+        ]);
 
         WindowSystem.AddWindow(mainWindow);
         WindowSystem.AddWindow(configWindow);
@@ -80,6 +85,7 @@ public sealed class Plugin : IDalamudPlugin
         WindowSystem.AddWindow(dependenciesWindow);
         WindowSystem.AddWindow(runHistoryWindow);
         WindowSystem.AddWindow(LiveFateWindow);
+        WindowSystem.AddWindow(edgeDockWindow);
 
         CommandManager.AddHandler(AfgConstants.PrimaryCommand, new CommandInfo(OnCommand)
         {
@@ -136,6 +142,7 @@ public sealed class Plugin : IDalamudPlugin
         dependenciesWindow.Dispose();
         runHistoryWindow.Dispose();
         LiveFateWindow.Dispose();
+        edgeDockWindow.Dispose();
 
         CommandManager.RemoveHandler(AfgConstants.PrimaryCommand);
         CommandManager.RemoveHandler(AfgConstants.ShortCommand);
