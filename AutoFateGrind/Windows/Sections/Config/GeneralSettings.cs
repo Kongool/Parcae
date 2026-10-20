@@ -1,5 +1,9 @@
 using AutoFateGrind.Core.Ipc;
 using AutoFateGrind.Windows.Components;
+using AutoFateGrind.Windows.Dock;
+using Dalamud.Bindings.ImGui;
+using Dalamud.Interface.Utility;
+using System.Numerics;
 
 namespace AutoFateGrind.Windows.Sections.Config;
 
@@ -19,11 +23,13 @@ internal static class GeneralSettings
         new("Ariadne", "Cached navmeshes from Mnemosyne. Ariadne answers the vnavmesh IPC when vnavmesh is not loaded, so movement works unchanged."),
     ];
 
-    // Index 0 = left, 1 = right, matching the shared dock's edge numbering.
-    private static readonly SettingsControls.Choices.Choice[] dockSideChoices =
+    // Index == DockEdge value (the shared dock's edge numbering).
+    private static readonly SettingsControls.Choices.Choice[] dockEdgeChoices =
     [
-        new("Left", "Tab pinned to the left edge of the screen; its panel pops out to the right."),
-        new("Right", "Tab pinned to the right edge of the screen; its panel pops out to the left."),
+        new("Left", "Pinned to the left edge of the screen; the panel pops out to the right."),
+        new("Right", "Pinned to the right edge of the screen; the panel pops out to the left."),
+        new("Top", "Pinned to the top edge of the screen; the panel drops down below it."),
+        new("Bottom", "Pinned to the bottom edge of the screen; the panel rises above it."),
     ];
 
     public static void Draw(Configuration cfg)
@@ -54,21 +60,33 @@ internal static class GeneralSettings
             SettingsRow.ToggleHeight);
 
         SettingsRow.Draw("Edge dock tab",
-            "Show a Parcae tab on the screen edge, stacked with Charon's and Daedalus's. Point at it for the live tracker and run controls; click to pin it open.",
+            "Show a Parcae tab on the screen edge, alongside Daedalus's and Charon's. Point at it for the live tracker and run controls; click to pin it open. Drag it to any edge and let go to move it.",
             SettingsControls.ToggleWidth,
             () => SettingsControls.DrawToggle(cfg, () => cfg.EdgeDockEnabled, v => cfg.EdgeDockEnabled = v, "##gen_edgedock"),
             SettingsRow.ToggleHeight);
 
-        var sideSelected = cfg.EdgeDockRightSide ? 1 : 0;
-        SettingsRow.Draw("Dock side",
-            "Which screen edge the tab sits on. Docks from Charon and Daedalus on the same edge stack with it as one group.",
+        var edgeSelected = Math.Clamp((int)cfg.EdgeDockEdge, 0, dockEdgeChoices.Length - 1);
+        SettingsRow.Draw("Dock edge",
+            "Which screen edge the tab sits on. Dragging the tab changes this too. Tabs from every plugin on an edge keep clear of each other.",
             SettingsControls.RowComboWidth,
-            () => SettingsControls.Choices.DrawCombo("##gen_edgedock_side", dockSideChoices, sideSelected, choice =>
+            () => SettingsControls.Choices.DrawCombo("##gen_edgedock_edge", dockEdgeChoices, edgeSelected, choice =>
             {
-                cfg.EdgeDockRightSide = choice == 1;
+                cfg.EdgeDockEdge = (DockEdge)choice;
                 cfg.SaveDebounced();
             }));
-        SettingsRow.Caption(dockSideChoices[sideSelected].Detail);
+        SettingsRow.Caption(dockEdgeChoices[edgeSelected].Detail);
+
+        SettingsRow.Draw("Dock position",
+            "Puts the tab back on the right edge, in the middle. Drag the tab to place it anywhere along any edge.",
+            SettingsControls.RowComboWidth,
+            () =>
+            {
+                if (ImGui.Button("Reset position##gen_dockreset", new Vector2(SettingsControls.RowComboWidth * ImGuiHelpers.GlobalScale, 0f)))
+                {
+                    cfg.ResetEdgeDockPlacement();
+                    cfg.Save();
+                }
+            });
     }
 
     private static void DrawBehaviorGroup(Configuration cfg)

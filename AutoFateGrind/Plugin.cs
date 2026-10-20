@@ -58,6 +58,8 @@ public sealed class Plugin : IDalamudPlugin
         TaskScheduler.UnobservedTaskException += unobservedTaskHandler;
 
         Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
+        if (Configuration.MigrateEdgeDock())
+            Configuration.Save();
         Cfg = Configuration;
         History = new RunHistory();
         Controller = new AutoFateController();
@@ -75,9 +77,15 @@ public sealed class Plugin : IDalamudPlugin
         runHistoryWindow = new RunHistoryWindow();
         LiveFateWindow = new LiveFateWindow(this) { IsOpen = Configuration.ShowLivePopout };
         edgeDockWindow = new EdgeDockWindow(
-        [
-            new EdgeDockWindow.Tab(ParcaeDockTab.Parcae, "Parcae", () => true, LiveFateWindow.DrawDockPanel),
-        ]);
+            [
+                new EdgeDockWindow.Tab("main", "Parcae", () => true, LiveFateWindow.DrawDockPanel, 320f),
+            ],
+            _ => (Configuration.EdgeDockEdge, Configuration.EdgeDockAlong),
+            (_, edge, along) =>
+            {
+                (Configuration.EdgeDockEdge, Configuration.EdgeDockAlong) = (edge, along);
+                Configuration.Save();
+            });
 
         WindowSystem.AddWindow(mainWindow);
         WindowSystem.AddWindow(configWindow);

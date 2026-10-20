@@ -51,7 +51,27 @@ public sealed class Configuration : IPluginConfiguration
     public bool ShowLivePopout { get; set; } = false;
     // Parcae's tab on the screen-edge dock shared with Charon and Daedalus.
     public bool EdgeDockEnabled { get; set; } = true;
+    // Which screen edge the Parcae tab is pinned to, and where along it its centre sits (a fraction of the edge;
+    // 0.5 = the middle). Dragging the tab and letting go changes both.
+    public AutoFateGrind.Windows.Dock.DockEdge EdgeDockEdge { get; set; } = AutoFateGrind.Windows.Dock.DockEdge.Right;
+    public float EdgeDockAlong { get; set; } = 0.5f;
+    // v0.2.0.0's left/right switch, replaced by EdgeDockEdge. Kept only so a saved Left carries over once.
     public bool EdgeDockRightSide { get; set; } = true;
+
+    public void ResetEdgeDockPlacement()
+    {
+        EdgeDockEdge = AutoFateGrind.Windows.Dock.DockEdge.Right;
+        EdgeDockAlong = 0.5f;
+    }
+
+    /// <summary>Carries the old left/right switch over to <see cref="EdgeDockEdge"/>. True if it changed anything.</summary>
+    public bool MigrateEdgeDock()
+    {
+        if (EdgeDockRightSide) return false;
+        EdgeDockEdge = AutoFateGrind.Windows.Dock.DockEdge.Left;
+        EdgeDockRightSide = true;
+        return true;
+    }
 
     // Auto-restart on fault, bounded by MaxConsecutiveStateErrors.
     public bool AutoResumeOnFault { get; set; } = true;
