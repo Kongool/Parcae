@@ -2,20 +2,34 @@
 name: dalamud-patch-check
 description: >-
   Check whether the latest Dalamud patch collides with the user's FFXIV/Dalamud
-  plugins, and bump + rebuild their own plugins (Parcae/AutoFateGrind, Mercury,
-  Minerva, Daedalus, Ariadne, Fatum, Charon) when the Dalamud API level moves.
-  Use when the user mentions a Dalamud update/patch, asks whether an update
-  breaks or "collides with" their plugins, sees plugins marked outdated, or wants
-  to bump a plugin to a new Dalamud API level / Dalamud.NET.Sdk version.
+  plugins — API-level mismatches AND build breaks — and fix their own plugins
+  (always Parcae/AutoFateGrind, Mercury and Fatum; also Minerva, Daedalus, Ariadne,
+  Charon when present). Use when the user mentions a Dalamud update/patch, asks
+  whether an update breaks or "collides with" their plugins, sees plugins marked
+  outdated, a plugin stops building after an update, or wants to bump a plugin to a
+  new Dalamud API level / Dalamud.NET.Sdk version.
 ---
 
 # Dalamud patch collision check & fix
 
-Dalamud plugins declare a `DalamudApiLevel` (set by the `Dalamud.NET.Sdk` version
-they build against). When a Dalamud patch bumps the API level, every plugin still
-declaring the old level is **disabled as "outdated"** until rebuilt against the new
-SDK. That API-level mismatch is the "collision." This skill detects it and fixes
-the user's own plugins.
+A Dalamud patch can collide with plugins in two ways, and this skill checks both:
+
+1. **API-level mismatch (won't load).** Plugins declare a `DalamudApiLevel` (set by
+   the `Dalamud.NET.Sdk` version they build against). When a patch bumps the API
+   level, every plugin still declaring the old level is **disabled as "outdated"**
+   until rebuilt against the new SDK.
+2. **Build break at the same API level (won't compile).** A point release can ship a
+   newer FFXIVClientStructs that breaks code compiled against the old one, with no
+   API bump and no "outdated" flag. Real case: Dalamud **15.0.3.8** added
+   `FFXIVClientStructs...ExcelPage`, making ECommons' `QuestDialogueText` ambiguous
+   with `Lumina.Excel.ExcelPage` — Parcae stopped building until its ECommons
+   submodule moved to upstream master. Only actually building the plugins catches this.
+
+The user's own plugins that must **always** be checked: **Parcae**
+(`C:/Dev/Parcae/AutoFateGrind/AutoFateGrind.csproj`), **Mercury**
+(`C:/Dev/Mercury/Mercury.csproj`) and **Fatum** (`C:/Dev/Fatum/Fatum/Fatum.csproj`).
+Minerva, Daedalus, Ariadne and Charon are checked too when their source is under
+the dev roots.
 
 API level == major of the Dalamud AssemblyVersion and of the `Dalamud.NET.Sdk`
 version (e.g. `Dalamud.NET.Sdk/15.0.0` → API 15; Dalamud `15.0.3.x` → API 15).
@@ -25,10 +39,10 @@ level and never collide.
 ## 1. Determine the latest Dalamud
 
 The installed/running version is the highest-numbered folder under
-`%AppData%\XIVLauncher\addon\Hooks\<ver>\version.json` (the `check-dalamud.sh`
-script reads it). For the **latest available** version the script tries `curl`,
-but Git Bash curl often fails on these endpoints — if the script's "latest"
-lines come back empty, fetch them yourself with WebFetch:
+`%AppData%\XIVLauncher\addon\Hooks\<ver>\version.json`, and the script also fetches
+the latest release and staging versions (the server answers in camelCase —
+`assemblyVersion` — which the script handles). If its "latest" lines come back
+empty (offline), fetch them with WebFetch:
 
 - Release: `https://kamori.goats.dev/Dalamud/Release/VersionInfo?track=release`
 - Staging: `https://kamori.goats.dev/Dalamud/Release/VersionInfo?track=staging`
@@ -42,16 +56,26 @@ load (they may still need a dependency refresh — see §4).
 
 ## 2. Run the collision check
 
+Always run it with `--build` (the script lives beside this file, in `scripts/`; in
+the Parcae repo that is `.claude/skills/dalamud-patch-check/scripts/`, in user skills
+`~/.claude/skills/dalamud-patch-check/scripts/`):
+
 ```bash
-bash .claude/skills/dalamud-patch-check/scripts/check-dalamud.sh
+bash <skill-dir>/scripts/check-dalamud.sh --build
 ```
 
 It prints the installed Dalamud, the latest release/staging, and a table of every
 **installed** plugin, every **dev** plugin (from `dalamudConfig.json`'s
 DevPluginLoadLocations), and every **own-source** `*.csproj` under `C:/Dev` and the
 Desktop, with each one's API level. Rows below the reference level are marked
-`COLLIDES`. Override scan roots with `DEV_ROOTS="..."` and the XIVLauncher dir with
-`XL_BASE=...` if they differ.
+`COLLIDES`. With `--build` it then compiles every own-source plugin (Parcae,
+Mercury, Fatum, Minerva, …) with `--no-incremental`, in the configuration its dev
+path loads from (`bin\Debug` → Debug, else Release), and reports `OK`/`FAILED` with
+the errors, plus any **obsolete-API warnings** (CS0618/CS0612) in the plugin's own
+code — those are Dalamud deprecations that will become breaks in a later patch.
+Vendored ECommons warnings are ignored. If Parcae, Mercury or Fatum is missing from
+the build table, its source moved — find it and build it by hand. Override scan
+roots with `DEV_ROOTS="..."` and the XIVLauncher dir with `XL_BASE=...` if needed.
 
 The reference level defaults to the **installed** Dalamud's major. When testing a
 *newer* track the user intends to adopt, compare against that track's major instead
@@ -59,18 +83,27 @@ The reference level defaults to the **installed** Dalamud's major. When testing 
 
 ## 3. Report
 
-State plainly: the latest Dalamud version + API level, and whether any plugin
-collides. If nothing is behind the reference level, say "no collision — all plugins
-are API N" and stop; do **not** invent a fix. Call out separately any plugin the
-user does **not** control (third-party installed plugins) that is behind — those can
-only be fixed by their authors or a repo update, not by us.
+State plainly: the latest Dalamud version + API level, whether any plugin collides
+on API level, and the build result for Parcae, Mercury and Fatum (and the others
+built). If nothing is behind and everything builds, say "no collision — all plugins
+are API N and build clean" and stop; do **not** invent a fix. Mention obsolete-API
+warnings as early warnings even when the build passes. Call out separately any
+plugin the user does **not** control (third-party installed plugins) that is behind —
+those can only be fixed by their authors or a repo update, not by us.
 
-## 4. Fix the user's own plugins (only when behind, or on request)
+## 4. Fix the user's own plugins (only when behind or failing, or on request)
 
-The user's own source projects (bump these, in priority order): **Parcae**
-(`C:/Dev/Parcae/AutoFateGrind/AutoFateGrind.csproj`) and **Mercury**
-(`C:/Dev/Mercury/Mercury.csproj`), then Minerva, Daedalus, Ariadne, Fatum, Charon
-if present under the dev roots. For each:
+Priority order: **Parcae**, **Mercury**, **Fatum**, then Minerva, Daedalus, Ariadne,
+Charon if present under the dev roots.
+
+**A build break at the same API level** (§2 shows `FAILED`, API unchanged): the
+cause is almost always a vendored dependency compiled against the old
+FFXIVClientStructs. For ECommons (a git submodule in Parcae), move it to upstream:
+`git -C <repo>/ECommons fetch origin && git -C <repo>/ECommons checkout origin/master`,
+rebuild, and commit the submodule bump. For NuGet deps (`croizat.clib` in Parcae),
+bump to the newest version. If the error is in the plugin's own code, fix it there.
+
+**An API-level bump**, for each plugin:
 
 1. **Bump the SDK** in the `.csproj`: `Sdk="Dalamud.NET.Sdk/<old>"` →
    `Sdk="Dalamud.NET.Sdk/<new-major>.0.0"` (the `DalamudApiLevel` in the built
@@ -100,7 +133,9 @@ session requires.
 
 - Staging/testing Dalamud bumps the API level **before** release. If the user runs
   the staging track, fix proactively; if release, they have until release to bump.
-- "Collides" strictly means API-level mismatch (won't load). A same-API game patch
-  that breaks a plugin's memory offsets is a *runtime* break, not a load collision —
-  it shows up as in-game errors / crashes, not an "outdated" flag, and is fixed by
-  the FFXIVClientStructs/ECommons refresh in §4.2, not an SDK major bump.
+- A same-API patch can still break a plugin two ways: at **build** time (caught by
+  `--build`, as with 15.0.3.8) or at **runtime** when a game patch moves memory
+  offsets — that shows up as in-game errors / crashes, not an "outdated" flag or a
+  build error. Both are fixed by the FFXIVClientStructs/ECommons refresh in §4, not an
+  SDK major bump. `--build` cannot see runtime breaks; if the game itself patched
+  (`SupportedGameVer` moved), tell the user to watch the Dalamud log after reloading.

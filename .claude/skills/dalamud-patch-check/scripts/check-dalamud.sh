@@ -3,7 +3,10 @@
 # Reports: installed Dalamud, latest release/staging, and every plugin's DalamudApiLevel,
 # flagging any plugin whose API level is behind the latest Dalamud API level.
 #
-# Usage: bash check-dalamud.sh
+# Usage: bash check-dalamud.sh [--build]
+#   --build  also compile every own-source plugin (in the configuration its dev path loads from) against
+#            the installed Dalamud, reporting failures and obsolete-API warnings. Catches same-API point
+#            releases that still break the build (e.g. 15.0.3.8's FFXIVClientStructs ExcelPage vs ECommons).
 # Env overrides: XL_BASE (XIVLauncher roaming dir), DEV_ROOTS (space-separated source roots).
 set -uo pipefail
 
@@ -28,8 +31,9 @@ fi
 for t in release staging; do
   j=$(curl -fsS "https://kamori.goats.dev/Dalamud/Release/VersionInfo?track=$t" 2>/dev/null)
   if [ -n "$j" ]; then
-    v=$(echo "$j" | grep -oE '"AssemblyVersion":"[^"]*"' | sed 's/.*:"//;s/"//')
-    g=$(echo "$j" | grep -oE '"SupportedGameVer":"[^"]*"' | sed 's/.*:"//;s/"//')
+    # The server answers in camelCase ("assemblyVersion"); the local version.json is PascalCase.
+    v=$(echo "$j" | grep -ioE '"assemblyVersion":"[^"]*"' | sed 's/.*:"//;s/"//')
+    g=$(echo "$j" | grep -ioE '"supportedGameVer":"[^"]*"' | sed 's/.*:"//;s/"//')
     echo "latest $t : $v  (API $(api_of_version "$v")) game=$g"
   else
     echo "latest $t : (network unavailable — check https://kamori.goats.dev/Dalamud/Release/VersionInfo?track=$t)"
@@ -84,5 +88,32 @@ for root in $DEV_ROOTS; do
   done
 done
 echo
+if [ "${1:-}" = "--build" ]; then
+  echo "================ BUILD CHECK (own source) ================"
+  # Each plugin is built in the configuration Dalamud loads it from (its bin/Debug or bin/Release dev path).
+  DEVPATHS=$( [ -f "$CFG" ] && grep -oE '"Path":[[:space:]]*"[^"]+\.dll"' "$CFG" | sed 's/.*"\(.*\)"/\1/' | sed -E 's#\\+#/#g' )
+  for root in $DEV_ROOTS; do
+    [ -d "$root" ] || continue
+    grep -rlE 'Sdk="Dalamud\.NET\.Sdk' "$root" --include=*.csproj 2>/dev/null | while read -r proj; do
+      dir=$(dirname "$proj"); name=$(basename "$proj" .csproj)
+      conf=Release
+      # Here-strings, not `echo | grep -q`: under pipefail, grep -q quitting early SIGPIPEs the echo on big
+      # output (Minerva's ~200 warnings) and the pipeline reads as failed even when the build succeeded.
+      grep -qiF "$dir/bin/Debug/" <<<"$DEVPATHS" && conf=Debug
+      out=$(dotnet build "$proj" -c "$conf" --no-incremental 2>&1)
+      # Own code only: vendored ECommons warns plenty on its own and is not ours to fix.
+      obsolete=$(echo "$out" | grep -E "warning CS06(18|12)" | grep -viE "[\/]ECommons[\/]" | sed -E 's/^[[:space:]]+//; s/ \[.*//' | sort -u)
+      if grep -q "Build succeeded" <<<"$out"; then
+        printf "  %-22s %-7s OK    obsolete-API warnings: %s\n" "$name" "$conf" "$( [ -n "$obsolete" ] && echo "$obsolete" | wc -l || echo 0)"
+      else
+        printf "  %-22s %-7s FAILED\n" "$name" "$conf"
+        echo "$out" | grep -E " error " | sed -E 's/^[[:space:]]+//; s/ \[.*//' | sort -u | head -10 | sed 's/^/      /'
+      fi
+      [ -n "$obsolete" ] && echo "$obsolete" | head -5 | sed 's/^/      /'
+    done
+  done
+  echo
+fi
+
 echo "Done. Any row marked COLLIDES has a DalamudApiLevel below the reference level and will be"
 echo "disabled as 'outdated' after the patch; bump its Dalamud.NET.Sdk and rebuild (see SKILL.md)."
