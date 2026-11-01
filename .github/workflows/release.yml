@@ -4,9 +4,8 @@ on:
   push:
     tags:
       - 'v*.*.*'
-  # Manual fallback: when auto-tag pushes a tag via GITHUB_TOKEN, GitHub
-  # sometimes refuses to cascade-trigger this workflow. Dispatch on the tag
-  # ref to publish the release without having to delete and re-push the tag.
+  # How auto-tag.yml starts a release, and a manual fallback. Dispatch on the
+  # tag ref, or pass the tag as the input.
   workflow_dispatch:
     inputs:
       tag:
@@ -55,11 +54,8 @@ jobs:
 
       - name: Download Dalamud dev build
         shell: pwsh
-        # Track staging while API 15 / Patch 7.50 is in beta — the release
-        # channel is still API 14 and won't satisfy Dalamud.NET.Sdk 15.x.
-        # Revert to /latest.zip once Dalamud 15 GAs.
         run: |
-          $dalamudUrl = "https://goatcorp.github.io/dalamud-distrib/stg/latest.zip"
+          $dalamudUrl = "https://goatcorp.github.io/dalamud-distrib/latest.zip"
           $dalamudDir = "$env:AppData\XIVLauncher\addon\Hooks\dev"
           New-Item -ItemType Directory -Force -Path $dalamudDir | Out-Null
           Invoke-WebRequest -Uri $dalamudUrl -OutFile dalamud.zip
