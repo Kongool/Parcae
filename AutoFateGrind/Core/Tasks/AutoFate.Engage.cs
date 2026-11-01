@@ -206,6 +206,7 @@ public sealed partial class AutoFate
                     EnableTextAdvanceForCollect();
                     collectTextAdvanceArmed = true;
                 }
+                if (collectTextAdvanceArmed) RefreshCollectAssist();
 
                 if (await TickEngagementWatchdog(fateId, fate, reach)) break;
 

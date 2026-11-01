@@ -10,6 +10,7 @@ using clib.TaskSystem;
 using clib.Utils;
 using Dalamud.Game.ClientState.Conditions;
 using ECommons.DalamudServices;
+using ECommons.Throttlers;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Fate;
 using System.Numerics;
@@ -449,9 +450,23 @@ public sealed partial class AutoFate
     private static bool textAdvanceArmed;
     private const string TextAdvanceScope = AfgConstants.TextAdvanceCallerName;
 
+    // Odysseus's assist lease is preferred over TextAdvance when present: a TTL refreshed while the Collect FATE
+    // runs, so a crashed run lets it lapse on its own. TextAdvance stays as the fallback.
+    private static bool odysseusLeased;
+    private const int OdysseusLeaseSeconds = 60;
+    private const string OdysseusRefreshKey = "AFG.Odysseus.AssistLease";
+    private const int OdysseusRefreshMs = 30_000;
+
     private static void EnableTextAdvanceForCollect()
     {
-        if (textAdvanceArmed) return;
+        if (textAdvanceArmed || odysseusLeased) return;
+        if (OdysseusIPC.IsAvailable && OdysseusIPC.Lease(OdysseusLeaseSeconds))
+        {
+            odysseusLeased = true;
+            EzThrottler.Throttle(OdysseusRefreshKey, OdysseusRefreshMs, rethrottle: true);
+            Svc.Log.Info($"{AfgConstants.LogPrefix} Collect turn-in assist: Odysseus lease ({OdysseusLeaseSeconds}s)");
+            return;
+        }
         if (!ExternalPlugins.IsInstalled(ExternalPlugin.TextAdvance)) return;
         try
         {
@@ -464,8 +479,21 @@ public sealed partial class AutoFate
         }
     }
 
+    // Called every engage tick while a Collect FATE is armed; renews the Odysseus lease well inside its TTL.
+    private static void RefreshCollectAssist()
+    {
+        if (!odysseusLeased) return;
+        if (EzThrottler.Throttle(OdysseusRefreshKey, OdysseusRefreshMs))
+            OdysseusIPC.Lease(OdysseusLeaseSeconds);
+    }
+
     private static void DisableTextAdvance()
     {
+        if (odysseusLeased)
+        {
+            OdysseusIPC.Lease(0);
+            odysseusLeased = false;
+        }
         if (!textAdvanceArmed) return;
         try { TextAdvanceIPC.DisableExternalControl(TextAdvanceScope); }
         catch (Exception ex) { Svc.Log.Warning(ex, "[AFG] TextAdvance disable failed"); }
