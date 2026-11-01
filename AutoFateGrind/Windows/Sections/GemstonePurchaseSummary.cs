@@ -17,6 +17,10 @@ internal static class GemstonePurchaseSummary
     private static readonly string[] spendLabels =
         ["Spend all above reserve", "Spend up to a gem amount", "Buy a fixed quantity"];
 
+    // Must match Styling.PushCardStyle's vertical WindowPadding and ToggleSwitch's track height.
+    private const float CardPaddingY = 9f;
+    private const float ToggleHeight = 20f;
+
     public static string HeaderSummary(Configuration cfg)
     {
         if (!cfg.TradeOnCap) return "off";
@@ -27,7 +31,11 @@ internal static class GemstonePurchaseSummary
     public static void Draw(Configuration cfg)
     {
         var scale = ImGuiHelpers.GlobalScale;
-        var height = (cfg.TradeOnCap ? 154f : 45f) * scale;
+        // Collapsed: padding + a header row as tall as the toggle + spacing + the subtitle line, measured from the
+        // live font and style so a larger UI font cannot clip the subtitle the way a fixed 45px did.
+        var collapsed = CardPaddingY * 2f * scale + Math.Max(ImGui.GetTextLineHeight(), ToggleHeight * scale)
+                      + ImGui.GetStyle().ItemSpacing.Y + ImGui.GetTextLineHeight();
+        var height = cfg.TradeOnCap ? 154f * scale : collapsed;
         using var card = Card.Begin("##gemstone_purchase", new Vector2(-1, height),
             Styling.CardBgSoft, Styling.BorderDim);
 
