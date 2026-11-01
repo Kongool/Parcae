@@ -1,4 +1,5 @@
 using AutoFateGrind.Core.Game.Ops;
+using AutoFateGrind.Core.Ipc;
 using AutoFateGrind.Core.Trading;
 using AutoFateGrind.Core.Zones;
 using clib.TaskSystem;
@@ -23,7 +24,16 @@ public sealed class AutoTrade(uint targetItemId, uint originTerritoryId, Expansi
     private const int ShopCloseSettleMs = 350;
     private const int MenuRetryMs = 500;
 
+    // The trader's greeting is a Talk box; the dialogue assist clears it. Released however the trade ends.
+    private const int TradeAssistLeaseSeconds = 120;
+
     protected override async Task Execute()
+    {
+        try { await Trade(); }
+        finally { SkipAssist.Release(); }
+    }
+
+    private async Task Trade()
     {
         var item = GemstoneCatalog.FindById(targetItemId);
         ErrorIf(item is null, "No target item set. Open /afg config → Trader and pick one.");
@@ -60,6 +70,7 @@ public sealed class AutoTrade(uint targetItemId, uint originTerritoryId, Expansi
         var npc = RepairOps.FindNearestObjectByBaseId(trader.EnpcBaseId);
         ErrorIf(npc is null, $"Could not find {trader.Name} (ENpcBase {trader.EnpcBaseId}) near {trader.Position}.");
 
+        SkipAssist.Arm("Auto-trade", TradeAssistLeaseSeconds, handOver: false);
         Status = $"Talking to {trader.Name}";
         Diag($"Interacting with {trader.Name} (BaseId={npc!.BaseId})");
         var interact = new MoveOp(o => o.Interact(npc,
