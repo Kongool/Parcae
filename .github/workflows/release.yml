@@ -67,9 +67,14 @@ jobs:
 
       - name: Stage latest.zip
         shell: pwsh
+        env:
+          VERSION: ${{ steps.tag.outputs.version }}
         run: |
           $src = 'AutoFateGrind/bin/Release/AutoFateGrind/latest.zip'
           if (-not (Test-Path $src)) { throw "SDK-built plugin zip not found at $src" }
+          # repo.json will advertise this version, so the zip has to really be it.
+          $built = (Get-Content -Raw AutoFateGrind/bin/Release/AutoFateGrind.json | ConvertFrom-Json).AssemblyVersion
+          if ($built -ne $env:VERSION) { throw "Tag says $env:VERSION but the plugin built as $built" }
           Copy-Item $src 'latest.zip' -Force
 
       - name: Create GitHub Release
@@ -88,22 +93,16 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           total=$(gh api "repos/${{ github.repository }}/releases" --paginate \
-            --jq '[.[].assets[].download_count] | add // 0')
+            --jq '[.[].assets[].download_count] | add // 0' | awk '{s+=$1} END {print s+0}')
           echo "total=$total" >> "$GITHUB_OUTPUT"
           echo "Total downloads across all releases: $total"
 
       - name: Update local repo.json
         shell: pwsh
-        run: |
-          $v = '${{ steps.tag.outputs.version }}'
-          $path = 'repo.json'
-          $json = Get-Content -Raw -Path $path | ConvertFrom-Json
-          $json[0].AssemblyVersion = $v
-          $json[0].TestingAssemblyVersion = $v
-          $json[0].DownloadCount = [int]'${{ steps.count.outputs.total }}'
-          $json[0] | Add-Member -NotePropertyName 'LastUpdate' -NotePropertyValue ([string][int][double]::Parse((Get-Date -UFormat %s))) -Force
-          # -AsArray preserves the array wrapper; piping a single-element array through | unrolls it and loses the [ ... ] Dalamud requires.
-          ConvertTo-Json -InputObject $json -Depth 10 -AsArray | Set-Content -Path $path -Encoding utf8
+        env:
+          VERSION: ${{ steps.tag.outputs.version }}
+          TOTAL: ${{ steps.count.outputs.total }}
+        run: ./.github/scripts/update-repo-json.ps1 -Version $env:VERSION -ManifestPath AutoFateGrind/bin/Release/AutoFateGrind.json -DownloadCount ([int]$env:TOTAL)
 
       - name: Commit local repo.json
         shell: pwsh

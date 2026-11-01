@@ -1,13 +1,13 @@
 name: Auto-tag on version bump
 
 # Whenever main moves, read the plugin version from Directory.Build.props.
-# If that version has no matching v* tag yet, create one and push it — the
-# existing release.yml fires from the tag push and publishes latest.zip.
+# If that version has no matching v* tag yet, tag it and start release.yml,
+# which publishes latest.zip and then updates repo.json.
 #
 # Bump <Version> in Directory.Build.props before (or inside) your PR and
 # you get a release automatically once it merges. Commit without a version
-# bump and nothing happens. CI also asserts repo.json's AssemblyVersion /
-# TestingAssemblyVersion match this value.
+# bump and nothing happens. Leave repo.json alone: it should only change once
+# the new zip exists to download.
 #
 # Tags pushed with GITHUB_TOKEN do NOT trigger other workflows, so this starts
 # release.yml and update-issue-template-versions.yml explicitly: workflow_dispatch
